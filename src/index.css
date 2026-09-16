@@ -1,0 +1,163 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Outfit, system-ui, sans-serif;
+  background: #0b0c10;
+  color: #e7e9ee;
+}
+
+a {
+  color: inherit;
+}
+
+/* Status/error screens (sign-in gate, MFA gate, error boundary). Neutral
+   dark palette — this app has no single brand's identity to carry. */
+.public-status {
+  box-sizing: border-box;
+  min-height: 100vh;
+  max-width: 36rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+}
+
+.public-status__title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.public-status__body {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: #a6acbb;
+}
+
+/* Sign-in form */
+.hq-signin {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.hq-signin__panel {
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hq-signin__lead {
+  margin: 0;
+  color: #a6acbb;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.hq-signin__error {
+  margin: 0;
+  color: #ff8b8b;
+  font-size: 0.9rem;
+}
+
+.hq-card {
+  background: #14161d;
+  border: 1px solid #262a35;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field label {
+  font-size: 0.85rem;
+  color: #a6acbb;
+}
+
+.auth-field input,
+.auth-field select {
+  background: #1b1e27;
+  border: 1px solid #2c3140;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: inherit;
+  font-size: 1rem;
+}
+
+.auth-field input:focus-visible,
+.auth-field select:focus-visible {
+  outline: 2px solid #6f7bff;
+  outline-offset: 1px;
+}
+
+.auth-field__password {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.auth-field__password input {
+  flex: 1;
+}
+
+.auth-field__toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #a6acbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.auth-field__toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hq-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.hq-button--primary {
+  background: #6f7bff;
+  color: #fff;
+}
+
+.hq-button--primary:hover:not(:disabled) {
+  background: #5763ea;
+}
+
+.hq-button--ghost {
+  background: transparent;
+  border: 1px solid #2c3140;
+  color: inherit;
+}
+
+.hq-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
