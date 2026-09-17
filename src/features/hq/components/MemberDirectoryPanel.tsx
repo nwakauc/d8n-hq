@@ -220,7 +220,7 @@ function DirectoryResults({
                 const profileFlags = [
                   entry.profile_status && entry.profile_status !== "active"
                     ? {
-                        tone: (entry.profile_status === "suspended" ? "danger" : "warning") as const,
+                        tone: entry.profile_status === "suspended" ? ("danger" as const) : ("warning" as const),
                         label: humanizeKey(entry.profile_status),
                       }
                     : null,
