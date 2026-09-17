@@ -47,6 +47,7 @@ function directoryMember(overrides: Record<string, unknown> = {}) {
     user_id: 42,
     profile_id: PROFILE_ID,
     display_name: "Sam Directory",
+    email: "sam@example.com",
     user_status: "active",
     membership_status: "active",
     profile_status: "active",

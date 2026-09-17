@@ -192,6 +192,7 @@ function DirectoryResults({
             tableClassName="hq-directory-table"
             columns={[
               { key: "member", header: "Member" },
+              { key: "email", header: "Email" },
               { key: "account", header: "Account" },
               { key: "profile", header: "Profile" },
               { key: "joined", header: "Joined" },
@@ -203,6 +204,30 @@ function DirectoryResults({
               (entry) => {
                 const path = memberPath(entry, memberBasePath);
                 const name = memberLabel(entry);
+                // Membership/user/profile status are each independently "active" for
+                // any healthy member, so showing all three as separate badges reads
+                // as the same word repeated three times. Only surface a badge when a
+                // dimension is NOT in its routine/expected state -- a clean row with
+                // nothing to flag shows a single "OK", not three redundant pills.
+                const accountFlags = [
+                  entry.membership_status !== "active"
+                    ? { tone: "warning" as const, label: humanizeKey(entry.membership_status) }
+                    : null,
+                  entry.user_status !== "active"
+                    ? { tone: "warning" as const, label: humanizeKey(entry.user_status) }
+                    : null,
+                ].filter((flag): flag is { tone: "warning"; label: string } => flag !== null);
+                const profileFlags = [
+                  entry.profile_status && entry.profile_status !== "active"
+                    ? {
+                        tone: (entry.profile_status === "suspended" ? "danger" : "warning") as const,
+                        label: humanizeKey(entry.profile_status),
+                      }
+                    : null,
+                  entry.profile_visibility && entry.profile_visibility !== "visible"
+                    ? { tone: "neutral" as const, label: humanizeKey(entry.profile_visibility) }
+                    : null,
+                ].filter((flag): flag is { tone: "danger" | "warning" | "neutral"; label: string } => flag !== null);
                 return {
                   member: path ? (
                     <Link className="hq-inline-link" to={path}>
@@ -211,32 +236,33 @@ function DirectoryResults({
                   ) : (
                     name
                   ),
+                  email: entry.email ?? <span className="hq-card__subtitle">—</span>,
                   account: (
                     <div className="hq-directory__badges">
-                      <StatusBadge
-                        tone={entry.membership_status === "active" ? "success" : "neutral"}
-                      >
-                        {humanizeKey(entry.membership_status)}
-                      </StatusBadge>
-                      <StatusBadge tone={entry.user_status === "active" ? "neutral" : "warning"}>
-                        {humanizeKey(entry.user_status)}
-                      </StatusBadge>
+                      {accountFlags.length > 0 ? (
+                        accountFlags.map((flag) => (
+                          <StatusBadge key={flag.label} tone={flag.tone}>
+                            {flag.label}
+                          </StatusBadge>
+                        ))
+                      ) : (
+                        <StatusBadge tone="success">OK</StatusBadge>
+                      )}
                     </div>
                   ),
                   profile: (
                     <div className="hq-directory__badges">
-                      {entry.profile_status ? (
-                        <StatusBadge
-                          tone={entry.profile_status === "suspended" ? "danger" : "neutral"}
-                        >
-                          {humanizeKey(entry.profile_status)}
-                        </StatusBadge>
-                      ) : (
+                      {!entry.profile_status ? (
                         <span className="hq-card__subtitle">No profile</span>
+                      ) : profileFlags.length > 0 ? (
+                        profileFlags.map((flag) => (
+                          <StatusBadge key={flag.label} tone={flag.tone}>
+                            {flag.label}
+                          </StatusBadge>
+                        ))
+                      ) : (
+                        <StatusBadge tone="success">OK</StatusBadge>
                       )}
-                      {entry.profile_visibility ? (
-                        <StatusBadge tone="neutral">{humanizeKey(entry.profile_visibility)}</StatusBadge>
-                      ) : null}
                       <StatusBadge tone="neutral" title="Verified contact methods">
                         {contactVerificationLabel(entry.contact_verification)}
                       </StatusBadge>

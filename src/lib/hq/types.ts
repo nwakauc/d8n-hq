@@ -30,6 +30,7 @@ export type HqMemberDirectoryEntry = {
   user_id: number;
   profile_id: string | null;
   display_name: string | null;
+  email: string | null;
   user_status: HqUserStatus;
   membership_status: HqMembershipStatus;
   profile_status: HqProfileStatus | null;

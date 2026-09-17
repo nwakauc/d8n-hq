@@ -1184,6 +1184,7 @@ function parseMemberDirectoryEntry(value: unknown): HqMemberDirectoryEntry {
     user_id: requireNumber(row.user_id, "member_directory_user_id"),
     profile_id: nullableString(row.profile_id),
     display_name: nullableString(row.display_name),
+    email: nullableString(row.email),
     user_status: parseUserStatus(row.user_status),
     membership_status: parseMembershipStatus(row.membership_status),
     profile_status: parseProfileStatus(row.profile_status),
