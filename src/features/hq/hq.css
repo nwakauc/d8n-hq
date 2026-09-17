@@ -3,7 +3,14 @@
 
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
-.hq-root {
+/* Design tokens live on :root, not .hq-root, so they're available to
+   sign-in/MFA screens too -- those render as siblings of .hq-root (see
+   HqShell.tsx: HqMfaGate wraps HqShellInner, and SignInPage is a separate
+   top-level route), never as its descendants, and CSS custom properties
+   don't apply anywhere they aren't inherited. Without this, every pre-auth
+   screen had no theme at all: transparent backgrounds, default/inherited
+   text color -- e.g. an MFA code input with no visible box or text. */
+:root {
   --hq-bg: #0b0f14;
   --hq-bg-elevated: #121820;
   --hq-bg-card: #151c26;
@@ -36,7 +43,15 @@
   --hq-bg-gradient-1: rgba(124, 108, 240, 0.08);
   --hq-bg-gradient-2: rgba(91, 164, 245, 0.05);
   --hq-nav-hover: rgba(255, 255, 255, 0.03);
+}
 
+body {
+  background: var(--hq-bg);
+  color: var(--hq-text);
+  font-family: var(--hq-font);
+}
+
+.hq-root {
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--hq-sidebar-width) minmax(0, 1fr);
