@@ -80,6 +80,15 @@ export type HqSession = {
   revoked_at: string | null;
 };
 
+/** Read-only legacy entitlement, preserved on migration -- D8N has no live
+ * billing system yet, so this is historical status, not enforced today. */
+export type HqAccountType = {
+  label: string;
+  founding_member: boolean;
+  subscription_status: string | null;
+  premium_expires_at: string | null;
+};
+
 export type HqIdentitySection = {
   user_id: number;
   user_status: HqUserStatus;
@@ -88,6 +97,7 @@ export type HqIdentitySection = {
   user_created_at: string;
   membership_status: HqMembershipStatus;
   member_since: string;
+  account_type: HqAccountType;
   identifiers: HqIdentifier[];
   recent_sessions: HqSession[];
 };
@@ -98,6 +108,16 @@ export type HqProfilePhoto = {
   status: "pending_review" | "approved" | "rejected";
   visibility: "hidden" | "visible";
   processing_state: "pending" | "processing" | "ready" | "failed";
+  image_url: string | null;
+};
+
+export type HqProfileVideo = {
+  id: string;
+  status: "pending_review" | "approved" | "rejected";
+  visibility: "hidden" | "visible";
+  processing_state: "pending" | "processing" | "ready" | "failed";
+  playback_url: string | null;
+  poster_url: string | null;
 };
 
 export type HqProfilePreference = {
@@ -133,6 +153,7 @@ export type HqProfileSection =
       onboarding_completion_percent: number;
       photo_count: number;
       photos: HqProfilePhoto[];
+      video: HqProfileVideo | null;
       preference: HqProfilePreference | null;
     };
 
@@ -477,6 +498,8 @@ export type HqCapability =
   /** @deprecated legacy umbrella — prefer granular enforcement capabilities */
   | "admin.enforcements.manage"
   | "admin.profile_photos.moderate"
+  | "admin.realme_verifications.moderate"
+  | "admin.identity_correction.manage"
   | "admin.operators.read"
   | "admin.operators.manage"
   | "admin.brand_operations.manage"
@@ -585,6 +608,55 @@ export type HqProfilePhotoModeration = {
 export type HqProfilePhotoModerationResult = {
   transitioned: boolean;
   photo: HqProfilePhotoModeration;
+};
+
+export type HqRealmeCheckType = "selfie" | "video" | "government_id";
+export type HqRealmeDecision = "approved" | "rejected" | "resubmission_requested";
+
+export type HqRealmeEvidence = {
+  content_type: string;
+  url: string;
+  url_expires_in: number;
+};
+
+export type HqRealmeQueueEntry = {
+  id: number;
+  user_id: number;
+  check_type: HqRealmeCheckType;
+  submitted_at: string | null;
+  evidence: HqRealmeEvidence | null;
+};
+
+export type HqRealmeQueue = {
+  assertions: HqRealmeQueueEntry[];
+};
+
+export type HqRealmeModeration = {
+  id: number;
+  user_id: number;
+  check_type: HqRealmeCheckType;
+  status: HqRealmeDecision | "pending";
+  reviewed_at: string | null;
+};
+
+export type HqRealmeModerationResult = {
+  transitioned: boolean;
+  assertion: HqRealmeModeration;
+};
+
+/** POST /admin/profiles/:id/identity_corrections -- gender / interested_in. */
+export type HqIdentityCorrectionField = "gender" | "interested_in";
+
+export type HqIdentityCorrection = {
+  id: number;
+  profile_id: string;
+  field: HqIdentityCorrectionField;
+  previous_value: unknown;
+  new_value: unknown;
+  reason: string;
+  note: string | null;
+  admin_user_id: number;
+  created_at: string;
 };
 
 export type HqManagedOperator = {

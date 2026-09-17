@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { displayNameForMember, memberRouteKey, parseDiscoveryDiagnostic, parseMember360 } from "./parse.ts";
+import {
+  displayNameForMember,
+  memberRouteKey,
+  parseDiscoveryDiagnostic,
+  parseIdentityCorrectionResponse,
+  parseMember360,
+  parseRealmeModerationResult,
+  parseRealmeQueue,
+} from "./parse.ts";
 
 const member360Fixture = {
   member: {
@@ -17,6 +25,12 @@ const member360Fixture = {
       user_created_at: "2026-01-01T00:00:00Z",
       membership_status: "active",
       member_since: "2026-01-02T00:00:00Z",
+      account_type: {
+        label: "Free",
+        founding_member: false,
+        subscription_status: null,
+        premium_expires_at: null,
+      },
       identifiers: [
         {
           kind: "email",
@@ -131,5 +145,68 @@ describe("parseDiscoveryDiagnostic", () => {
     });
     expect(diagnostic.stages).toHaveLength(3);
     expect(diagnostic.stages[1]?.stage).toBe("reciprocal_gender_age_distance");
+  });
+});
+
+describe("parseRealmeQueue", () => {
+  it("parses a queue of pending assertions with evidence", () => {
+    const queue = parseRealmeQueue({
+      assertions: [
+        {
+          id: 1,
+          user_id: 99,
+          check_type: "selfie",
+          submitted_at: "2026-01-01T00:00:00Z",
+          evidence: { content_type: "image/jpeg", url: "https://r2.example/1", url_expires_in: 300 },
+        },
+        {
+          id: 2,
+          user_id: 100,
+          check_type: "video",
+          submitted_at: null,
+          evidence: null,
+        },
+      ],
+    });
+    expect(queue.assertions).toHaveLength(2);
+    expect(queue.assertions[0]?.evidence?.url).toBe("https://r2.example/1");
+    expect(queue.assertions[1]?.evidence).toBeNull();
+  });
+
+  it("rejects an unknown check_type", () => {
+    expect(() =>
+      parseRealmeQueue({ assertions: [{ id: 1, user_id: 1, check_type: "fingerprint", submitted_at: null, evidence: null }] }),
+    ).toThrow();
+  });
+});
+
+describe("parseRealmeModerationResult", () => {
+  it("parses an approved decision", () => {
+    const result = parseRealmeModerationResult({
+      transitioned: true,
+      assertion: { id: 1, user_id: 99, check_type: "government_id", status: "approved", reviewed_at: "2026-01-01T00:00:00Z" },
+    });
+    expect(result.transitioned).toBe(true);
+    expect(result.assertion.status).toBe("approved");
+  });
+});
+
+describe("parseIdentityCorrectionResponse", () => {
+  it("parses a gender correction", () => {
+    const correction = parseIdentityCorrectionResponse({
+      correction: {
+        id: 5,
+        profile_id: "11111111-1111-1111-1111-111111111111",
+        field: "gender",
+        previous_value: "man",
+        new_value: "woman",
+        reason: "member requested correction",
+        note: null,
+        admin_user_id: 3,
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    });
+    expect(correction.field).toBe("gender");
+    expect(correction.new_value).toBe("woman");
   });
 });

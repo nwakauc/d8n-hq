@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../../../lib/api/errors.ts";
 import {
+  correctProfileIdentity,
   fetchHqAuthAttempts,
   fetchHqDiscoveryDiagnostic,
   fetchHqEnforcements,
@@ -9,9 +10,11 @@ import {
   fetchHqSecurityEvents,
   hqErrorMessage,
 } from "../../../lib/hq/api.ts";
+import { canManageIdentityCorrections } from "../../../lib/hq/enforcementAccess.ts";
 import { displayNameForMember } from "../../../lib/hq/parse.ts";
 import type { HqDiscoveryDiagnostic, HqMember360 } from "../../../lib/hq/types.ts";
 import { useHqBrand } from "../useHqBrand.ts";
+import { useHqOperator } from "../useHqOperator.ts";
 import { HqHistoryPanel } from "../components/HqHistoryPanel.tsx";
 import {
   CollapsibleSection,
@@ -22,6 +25,93 @@ import {
   StatusBadge,
   UnavailableState,
 } from "../components/HqPrimitives.tsx";
+
+const GENDER_OPTIONS = ["man", "woman", "nonbinary", "person"] as const;
+
+function GenderEditor({
+  profileId,
+  currentGender,
+  onCorrected,
+}: {
+  profileId: string;
+  currentGender: string | null;
+  onCorrected: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(currentGender ?? "");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!open) {
+    return (
+      <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => setOpen(true)}>
+        Correct gender
+      </button>
+    );
+  }
+
+  return (
+    <div className="hq-card" style={{ display: "grid", gap: 8, marginTop: 8 }}>
+      {error ? <StateBanner tone="error" title="Could not save" body={error} /> : null}
+      <label className="hq-card__subtitle">
+        New gender
+        <select
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          style={{ display: "block", marginTop: 4, width: "100%" }}
+        >
+          <option value="" disabled>
+            Choose…
+          </option>
+          {GENDER_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="hq-card__subtitle">
+        Reason (required, audited)
+        <input
+          type="text"
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="e.g. photo doesn't match stated gender, member requested correction"
+          style={{ display: "block", marginTop: 4, width: "100%" }}
+        />
+      </label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="hq-btn hq-btn--ghost hq-btn--sm"
+          disabled={saving}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="hq-btn hq-btn--primary hq-btn--sm"
+          disabled={saving || !value || !reason.trim()}
+          onClick={() => {
+            setSaving(true);
+            setError(null);
+            void correctProfileIdentity(profileId, "gender", value, reason.trim())
+              .then(() => {
+                setOpen(false);
+                onCorrected();
+              })
+              .catch((caught: unknown) => setError(hqErrorMessage(caught)))
+              .finally(() => setSaving(false));
+          }}
+        >
+          {saving ? "Saving…" : "Save correction"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const SECTION_KEYS = [
   "identity",
@@ -75,6 +165,8 @@ export default function Member360Page() {
   const { lookup: lookupParam } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { brandName } = useHqBrand();
+  const { operator } = useHqOperator();
+  const canCorrectIdentity = canManageIdentityCorrections(operator);
   const lookup = lookupParam ? decodeURIComponent(lookupParam) : "";
   const [load, setLoad] = useState<{ key: string; result: LoadResult | null }>({
     key: lookup,
@@ -151,6 +243,11 @@ export default function Member360Page() {
     load.result && load.result.status !== "ready" && load.key === lookup
       ? load.result.message
       : null;
+
+  const reloadMember = useCallback(() => {
+    if (!lookup) return;
+    void loadMember(lookup).then((result) => setLoad({ key: lookup, result }));
+  }, [lookup]);
 
   const productOpen = Boolean(member && openSections.has("product"));
   const diagnosticStatus =
@@ -288,6 +385,7 @@ export default function Member360Page() {
                 { label: "First name", value: member.sections.identity.first_name },
                 { label: "Last name", value: member.sections.identity.last_name },
                 { label: "Membership", value: member.sections.identity.membership_status },
+                { label: "Account type", value: member.sections.identity.account_type.label },
                 { label: "Member since", value: formatWhen(member.sections.identity.member_since) },
                 { label: "User created", value: formatWhen(member.sections.identity.user_created_at) },
               ]}
@@ -347,6 +445,48 @@ export default function Member360Page() {
               />
             ) : (
               <>
+                <div className="hq-card" style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+                  <p className="hq-card__subtitle" style={{ margin: 0 }}>
+                    Open profile — as it appears in the consumer app
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 8 }}>
+                    {member.sections.profile.photos.map((photo) =>
+                      photo.image_url ? (
+                        <img
+                          key={photo.id}
+                          src={photo.image_url}
+                          alt=""
+                          style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 8 }}
+                        />
+                      ) : (
+                        <div
+                          key={photo.id}
+                          style={{
+                            aspectRatio: "1",
+                            borderRadius: 8,
+                            background: "rgba(0,0,0,0.06)",
+                            display: "grid",
+                            placeItems: "center",
+                          }}
+                        >
+                          <span className="hq-card__subtitle">No derivative</span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                  {member.sections.profile.video?.playback_url ? (
+                    <video
+                      src={member.sections.profile.video.playback_url}
+                      poster={member.sections.profile.video.poster_url ?? undefined}
+                      controls
+                      playsInline
+                      style={{ width: "100%", maxWidth: 320, borderRadius: 8 }}
+                    />
+                  ) : null}
+                  {member.sections.profile.photos.length === 0 && !member.sections.profile.video ? (
+                    <span className="hq-card__subtitle">No photos or video on record.</span>
+                  ) : null}
+                </div>
                 <StatGroup
                   items={[
                     { label: "Public id", value: member.sections.profile.public_id },
@@ -366,6 +506,13 @@ export default function Member360Page() {
                     { label: "Photos", value: member.sections.profile.photo_count },
                   ]}
                 />
+                {canCorrectIdentity ? (
+                  <GenderEditor
+                    profileId={member.sections.profile.public_id}
+                    currentGender={member.sections.profile.gender}
+                    onCorrected={reloadMember}
+                  />
+                ) : null}
                 {member.sections.profile.preference ? (
                   <StatGroup
                     items={[

@@ -16,10 +16,13 @@ import {
   parseMfaChallengeResponse,
   parseMfaConfirmationResponse,
   parseMfaEnrollmentResponse,
+  parseIdentityCorrectionResponse,
   parseProfilePhotoModerationResult,
   parseProfilePhotoQueue,
   parseManagedOperatorList,
   parseManagedOperatorResponse,
+  parseRealmeModerationResult,
+  parseRealmeQueue,
   parseRepeatOffenderList,
   parseSecurityAlertList,
   parseSecurityEventList,
@@ -40,6 +43,8 @@ import type {
   HqDiscoveryDiagnostic,
   HqEnforcementList,
   HqHistoryParams,
+  HqIdentityCorrection,
+  HqIdentityCorrectionField,
   HqMember360,
   HqMfaChallengeResult,
   HqMfaConfirmation,
@@ -50,6 +55,9 @@ import type {
   HqMemberDirectoryParams,
   HqProfilePhotoModerationResult,
   HqProfilePhotoQueue,
+  HqRealmeDecision,
+  HqRealmeModerationResult,
+  HqRealmeQueue,
   HqUpdateOperatorBody,
   HqRepeatOffenderList,
   HqSecurityAlertList,
@@ -386,6 +394,39 @@ export async function moderateProfilePhoto(
     body: JSON.stringify({ status }),
   });
   return parseProfilePhotoModerationResult(data);
+}
+
+export async function fetchRealmeQueue(): Promise<HqRealmeQueue> {
+  const data = await apiRequest("/api/v1/admin/realme_verifications");
+  return parseRealmeQueue(data);
+}
+
+export async function moderateRealmeVerification(
+  assertionId: number,
+  decision: HqRealmeDecision,
+  note?: string,
+): Promise<HqRealmeModerationResult> {
+  const data = await apiRequest(`/api/v1/admin/realme_verifications/${encodeURIComponent(assertionId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: decision, ...(note ? { note } : {}) }),
+  });
+  return parseRealmeModerationResult(data);
+}
+
+export async function correctProfileIdentity(
+  profileId: string,
+  field: HqIdentityCorrectionField,
+  value: string | string[],
+  reason: string,
+  note?: string,
+): Promise<HqIdentityCorrection> {
+  const data = await apiRequest(`/api/v1/admin/profiles/${encodeURIComponent(profileId)}/identity_corrections`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, value, reason, ...(note ? { note } : {}) }),
+  });
+  return parseIdentityCorrectionResponse(data);
 }
 
 export async function fetchManagedOperators(): Promise<HqManagedOperator[]> {

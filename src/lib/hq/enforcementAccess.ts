@@ -31,3 +31,21 @@ export function canReadSecurityAlerts(
 ): boolean {
   return operatorHasCapability(operator, "hq.security_alerts.read");
 }
+
+export function canModerateProfilePhotos(
+  operator: HqCurrentOperator | null | undefined,
+): boolean {
+  return operatorHasCapability(operator, "admin.profile_photos.moderate");
+}
+
+export function canModerateRealmeVerifications(
+  operator: HqCurrentOperator | null | undefined,
+): boolean {
+  return operatorHasCapability(operator, "admin.realme_verifications.moderate");
+}
+
+export function canManageIdentityCorrections(
+  operator: HqCurrentOperator | null | undefined,
+): boolean {
+  return operatorHasCapability(operator, "admin.identity_correction.manage");
+}

@@ -100,6 +100,12 @@ function member360Ok(overrides: Record<string, unknown> = {}) {
         user_created_at: "2026-01-01T00:00:00Z",
         membership_status: "active",
         member_since: "2026-01-02T00:00:00Z",
+        account_type: {
+          label: "Free",
+          founding_member: false,
+          subscription_status: null,
+          premium_expires_at: null,
+        },
         identifiers: [
           {
             kind: "email",
@@ -195,6 +201,12 @@ function member360NoProfile() {
         user_created_at: "2026-01-01T00:00:00Z",
         membership_status: "active",
         member_since: "2026-01-02T00:00:00Z",
+        account_type: {
+          label: "Free",
+          founding_member: false,
+          subscription_status: null,
+          premium_expires_at: null,
+        },
         identifiers: [],
         recent_sessions: [],
       },

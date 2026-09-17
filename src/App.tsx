@@ -6,6 +6,8 @@ import CommandCentrePage from "./features/hq/pages/CommandCentrePage.tsx";
 import AlertsPage from "./features/hq/pages/AlertsPage.tsx";
 import Member360Page from "./features/hq/pages/Member360Page.tsx";
 import MemberSearchPage from "./features/hq/pages/MemberSearchPage.tsx";
+import ProfilePhotoModerationPage from "./features/hq/pages/ProfilePhotoModerationPage.tsx";
+import RealmeModerationPage from "./features/hq/pages/RealmeModerationPage.tsx";
 import ReportDetailPage from "./features/hq/pages/ReportDetailPage.tsx";
 import TrustSafetyPage from "./features/hq/pages/TrustSafetyPage.tsx";
 import UnavailableHqPage from "./features/hq/pages/UnavailableHqPage.tsx";
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="customers" element={<UnavailableHqPage path="/hq/customers" />} />
         <Route path="trust-safety" element={<TrustSafetyPage />} />
         <Route path="trust-safety/reports/:reportId" element={<ReportDetailPage />} />
+        <Route path="moderation/photos" element={<ProfilePhotoModerationPage />} />
+        <Route path="moderation/realme" element={<RealmeModerationPage />} />
         <Route path="reliability" element={<UnavailableHqPage path="/hq/reliability" />} />
         <Route path="apm" element={<UnavailableHqPage path="/hq/apm" />} />
         <Route path="errors" element={<UnavailableHqPage path="/hq/errors" />} />

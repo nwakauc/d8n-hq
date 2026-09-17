@@ -1,6 +1,7 @@
 import { ApiError } from "../api/errors.ts";
 import type {
   HqAccountClosure,
+  HqAccountType,
   HqAdminEnforcement,
   HqAdminReport,
   HqAdminReportList,
@@ -33,9 +34,18 @@ import type {
   HqMemberSummary,
   HqMembershipStatus,
   HqProductSection,
+  HqIdentityCorrection,
+  HqIdentityCorrectionField,
   HqProfilePhoto,
   HqProfilePreference,
   HqProfileSection,
+  HqProfileVideo,
+  HqRealmeCheckType,
+  HqRealmeEvidence,
+  HqRealmeModeration,
+  HqRealmeModerationResult,
+  HqRealmeQueue,
+  HqRealmeQueueEntry,
   HqRecentAuthAttempt,
   HqRecentReport,
   HqRecentSecurityEvent,
@@ -189,6 +199,16 @@ function parseSession(value: unknown): HqSession {
   };
 }
 
+function parseAccountType(value: unknown): HqAccountType {
+  const row = requireRecord(value, "account_type");
+  return {
+    label: requireString(row.label, "account_type_label"),
+    founding_member: requireBoolean(row.founding_member, "account_type_founding_member"),
+    subscription_status: nullableString(row.subscription_status),
+    premium_expires_at: nullableString(row.premium_expires_at),
+  };
+}
+
 function parseIdentity(value: unknown): HqIdentitySection {
   const row = requireRecord(value, "identity");
   if (!Array.isArray(row.identifiers) || !Array.isArray(row.recent_sessions)) {
@@ -202,6 +222,7 @@ function parseIdentity(value: unknown): HqIdentitySection {
     user_created_at: requireString(row.user_created_at, "user_created_at"),
     membership_status: parseMembershipStatus(row.membership_status),
     member_since: requireString(row.member_since, "member_since"),
+    account_type: parseAccountType(row.account_type),
     identifiers: row.identifiers.map(parseIdentifier),
     recent_sessions: row.recent_sessions.map(parseSession),
   };
@@ -232,6 +253,37 @@ function parsePhoto(value: unknown): HqProfilePhoto {
     status,
     visibility,
     processing_state: processing,
+    image_url: nullableString(row.image_url),
+  };
+}
+
+function parseVideo(value: unknown): HqProfileVideo | null {
+  if (value === null || value === undefined) return null;
+  const row = requireRecord(value, "video");
+  const status = row.status;
+  const visibility = row.visibility;
+  const processing = row.processing_state;
+  if (status !== "pending_review" && status !== "approved" && status !== "rejected") {
+    throw new ApiError(502, undefined, "invalid_hq_video_status");
+  }
+  if (visibility !== "hidden" && visibility !== "visible") {
+    throw new ApiError(502, undefined, "invalid_hq_video_visibility");
+  }
+  if (
+    processing !== "pending" &&
+    processing !== "processing" &&
+    processing !== "ready" &&
+    processing !== "failed"
+  ) {
+    throw new ApiError(502, undefined, "invalid_hq_video_processing");
+  }
+  return {
+    id: requireString(row.id, "video_id"),
+    status,
+    visibility,
+    processing_state: processing,
+    playback_url: nullableString(row.playback_url),
+    poster_url: nullableString(row.poster_url),
   };
 }
 
@@ -297,6 +349,7 @@ function parseProfile(value: unknown): HqProfileSection {
     onboarding_completion_percent: requireNumber(row.onboarding_completion_percent, "completion_percent"),
     photo_count: requireNumber(row.photo_count, "photo_count"),
     photos: row.photos.map(parsePhoto),
+    video: parseVideo(row.video ?? null),
     preference: parsePreference(row.preference ?? null),
   };
 }
@@ -1118,6 +1171,97 @@ export function parseProfilePhotoModerationResult(data: unknown): HqProfilePhoto
     transitioned: requireBoolean(root.transitioned, "photo_transitioned"),
     photo: parseProfilePhotoModeration(root.photo),
   };
+}
+
+function parseRealmeCheckType(value: unknown): HqRealmeCheckType {
+  if (value !== "selfie" && value !== "video" && value !== "government_id") {
+    throw new ApiError(502, undefined, "invalid_hq_realme_check_type");
+  }
+  return value;
+}
+
+function parseRealmeEvidence(value: unknown): HqRealmeEvidence | null {
+  if (value === null || value === undefined) return null;
+  const row = requireRecord(value, "realme_evidence");
+  return {
+    content_type: requireString(row.content_type, "realme_evidence_content_type"),
+    url: requireString(row.url, "realme_evidence_url"),
+    url_expires_in: requireNumber(row.url_expires_in, "realme_evidence_url_expires_in"),
+  };
+}
+
+function parseRealmeQueueEntry(value: unknown): HqRealmeQueueEntry {
+  const row = requireRecord(value, "realme_queue_entry");
+  return {
+    id: requireNumber(row.id, "realme_id"),
+    user_id: requireNumber(row.user_id, "realme_user_id"),
+    check_type: parseRealmeCheckType(row.check_type),
+    submitted_at: nullableString(row.submitted_at),
+    evidence: parseRealmeEvidence(row.evidence),
+  };
+}
+
+export function parseRealmeQueue(data: unknown): HqRealmeQueue {
+  const root = requireRecord(data, "realme_queue");
+  if (!Array.isArray(root.assertions)) {
+    throw new ApiError(502, undefined, "invalid_hq_realme_queue");
+  }
+  return { assertions: root.assertions.map(parseRealmeQueueEntry) };
+}
+
+function parseRealmeModeration(value: unknown): HqRealmeModeration {
+  const row = requireRecord(value, "realme_moderation");
+  const status = row.status;
+  if (
+    status !== "approved" &&
+    status !== "rejected" &&
+    status !== "resubmission_requested" &&
+    status !== "pending"
+  ) {
+    throw new ApiError(502, undefined, "invalid_hq_realme_status");
+  }
+  return {
+    id: requireNumber(row.id, "realme_id"),
+    user_id: requireNumber(row.user_id, "realme_user_id"),
+    check_type: parseRealmeCheckType(row.check_type),
+    status,
+    reviewed_at: nullableString(row.reviewed_at),
+  };
+}
+
+export function parseRealmeModerationResult(data: unknown): HqRealmeModerationResult {
+  const root = requireRecord(data, "realme_moderation_result");
+  return {
+    transitioned: requireBoolean(root.transitioned, "realme_transitioned"),
+    assertion: parseRealmeModeration(root.assertion),
+  };
+}
+
+function parseIdentityCorrectionField(value: unknown): HqIdentityCorrectionField {
+  if (value !== "gender" && value !== "interested_in") {
+    throw new ApiError(502, undefined, "invalid_hq_identity_correction_field");
+  }
+  return value;
+}
+
+function parseIdentityCorrection(value: unknown): HqIdentityCorrection {
+  const row = requireRecord(value, "identity_correction");
+  return {
+    id: requireNumber(row.id, "identity_correction_id"),
+    profile_id: requireString(row.profile_id, "identity_correction_profile_id"),
+    field: parseIdentityCorrectionField(row.field),
+    previous_value: row.previous_value,
+    new_value: row.new_value,
+    reason: requireString(row.reason, "identity_correction_reason"),
+    note: nullableString(row.note),
+    admin_user_id: requireNumber(row.admin_user_id, "identity_correction_admin_user_id"),
+    created_at: requireString(row.created_at, "identity_correction_created_at"),
+  };
+}
+
+export function parseIdentityCorrectionResponse(data: unknown): HqIdentityCorrection {
+  const root = requireRecord(data, "identity_correction_response");
+  return parseIdentityCorrection(root.correction);
 }
 
 function parseManagedOperator(value: unknown): HqManagedOperator {
