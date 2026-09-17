@@ -863,6 +863,12 @@ export function displayNameForMember(member: HqMember360): string {
   return member.member.profile_id ?? `User ${member.member.user_id}`;
 }
 
+// Kept in lockstep with domains/admin/capabilities.rb (ALL) -- the backend
+// is the single authorization vocabulary; this is a mirror, not a second
+// source of truth. A capability missing here makes a legitimately
+// authorized operator response fail to parse (thrown as invalid_hq_*),
+// which the caller cannot distinguish from a real 403 -- so this list must
+// stay a superset-safe copy of every string the backend can ever send.
 const HQ_CAPABILITIES = new Set<string>([
   "hq.member.sensitive_read",
   "hq.member.security_read",
@@ -876,6 +882,13 @@ const HQ_CAPABILITIES = new Set<string>([
   "admin.enforcements.override",
   "admin.enforcements.manage",
   "admin.profile_photos.moderate",
+  "admin.realme_verifications.moderate",
+  "admin.trust_adjustments.manage",
+  "admin.trust_adjustments.reverse",
+  "admin.discovery_restrictions.manage",
+  "admin.identity_correction.manage",
+  "admin.community.read",
+  "admin.community.moderate",
   "admin.operators.read",
   "admin.operators.manage",
   "admin.brand_operations.manage",
