@@ -27,6 +27,7 @@ import {
 } from "../components/HqPrimitives.tsx";
 
 const GENDER_OPTIONS = ["man", "woman", "nonbinary", "person"] as const;
+const LOOKING_FOR_OPTIONS = GENDER_OPTIONS;
 
 function GenderEditor({
   profileId,
@@ -111,6 +112,21 @@ function GenderEditor({
       </div>
     </div>
   );
+}
+
+function LookingForEditor({ profileId, currentValues, onCorrected }: { profileId: string; currentValues: string[]; onCorrected: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(currentValues[0] ?? "");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!open) return <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => setOpen(true)}>Correct who they&apos;re looking for</button>;
+  return <div className="hq-card" style={{ display: "grid", gap: 8, marginTop: 8 }}>
+    {error ? <StateBanner tone="error" title="Could not save" body={error} /> : null}
+    <label className="hq-card__subtitle">Looking for<select value={value} onChange={(event) => setValue(event.target.value)} style={{ display: "block", marginTop: 4, width: "100%" }}><option value="" disabled>Choose…</option>{LOOKING_FOR_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+    <label className="hq-card__subtitle">Reason (required, audited)<input type="text" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="e.g. corrected after member request" style={{ display: "block", marginTop: 4, width: "100%" }} /></label>
+    <div style={{ display: "flex", gap: 8 }}><button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="hq-btn hq-btn--primary hq-btn--sm" disabled={saving || !value || !reason.trim()} onClick={() => { setSaving(true); setError(null); void correctProfileIdentity(profileId, "interested_in", [value], reason.trim()).then(() => { setOpen(false); onCorrected(); }).catch((caught: unknown) => setError(hqErrorMessage(caught))).finally(() => setSaving(false)); }}>{saving ? "Saving…" : "Save correction"}</button></div>
+  </div>;
 }
 
 const SECTION_KEYS = [
@@ -514,6 +530,8 @@ export default function Member360Page() {
                   />
                 ) : null}
                 {member.sections.profile.preference ? (
+                  <>
+                  {canCorrectIdentity ? <LookingForEditor profileId={member.sections.profile.public_id} currentValues={member.sections.profile.preference.interested_in} onCorrected={reloadMember} /> : null}
                   <StatGroup
                     items={[
                       { label: "Min age", value: member.sections.profile.preference.min_age },
@@ -533,6 +551,7 @@ export default function Member360Page() {
                       { label: "Pref country", value: member.sections.profile.preference.country },
                     ]}
                   />
+                  </>
                 ) : null}
                 <DataTable
                   columns={[
