@@ -57,6 +57,16 @@ a {
   gap: 16px;
 }
 
+.hq-signin__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hq-signin__brand h1 {
+  margin: 0;
+}
+
 .hq-signin__lead {
   margin: 0;
   color: #a6acbb;

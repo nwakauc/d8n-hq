@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { HqSiteLink } from "./HqSiteLink.tsx";
 import { HqSidebarNav } from "./HqSidebarNav.tsx";
 import { useHqOperator } from "./useHqOperator.ts";
+import { HqLogo } from "./HqLogo.tsx";
 
 export function HqSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { operator } = useHqOperator();
@@ -9,9 +10,7 @@ export function HqSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="hq-sidebar" aria-label="D8N HQ navigation">
       <div className="hq-sidebar__brand">
-        <div className="hq-sidebar__mark" aria-hidden="true">
-          D8
-        </div>
+        <HqLogo size={28} className="hq-sidebar__mark" />
         <div>
           <div className="hq-sidebar__title">D8N HQ</div>
           <div className="hq-sidebar__subtitle">Command centre</div>

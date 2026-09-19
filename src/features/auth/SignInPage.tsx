@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./useAuth.ts";
 import { PasswordField } from "./PasswordField.tsx";
 import { signInErrorMessage } from "./authErrors.ts";
+import { HqLogo } from "../hq/HqLogo.tsx";
 
 /** Sign in to one brand at a time — see HQ-EXTRACTION-PLAN.md for why this
  * app holds one Bearer token per brand instead of one shared session. An
@@ -63,7 +64,10 @@ export default function SignInPage() {
   return (
     <main className="hq-signin">
       <form className="hq-signin__panel hq-card" onSubmit={(event) => void onSubmit(event)}>
-        <h1>D8N HQ</h1>
+        <div className="hq-signin__brand">
+          <HqLogo size={42} />
+          <h1>D8N HQ</h1>
+        </div>
         <p className="hq-signin__lead">
           Sign in with the operator account for the brand you want to work in. HQ requires an
           active admin assignment and a step-up authenticator code after this.
