@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { loginWithPassword, revokeCurrentSession } from "../../lib/api/auth.ts";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { loginWithPassword, restoreHqSession, revokeCurrentSession } from "../../lib/api/auth.ts";
 import { setUnauthorizedListener } from "../../lib/api/client.ts";
 import {
-  brandsWithTokens,
+  hasHqSession,
+  markHqSession,
+  clearHqSession,
   setActiveBrand as storeSetActiveBrand,
-  setBrandToken,
 } from "../../lib/api/tokenStore.ts";
 import { BRANDS } from "../../lib/brands.ts";
 import { AuthContext } from "./AuthContext.ts";
@@ -31,10 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored;
   });
   const [version, setVersion] = useState(0);
+  const [authReady, setAuthReady] = useState(() => {
+    const initialBrand = readStoredActiveBrand() ?? BRANDS[0]?.slug;
+    return initialBrand ? hasHqSession(initialBrand) : true;
+  });
+
+  useEffect(() => {
+    if (!activeBrand || hasHqSession(activeBrand)) return;
+    void restoreHqSession(activeBrand)
+      .then((session) => {
+        markHqSession(activeBrand, session.csrf_token);
+        setVersion((v) => v + 1);
+      })
+      .catch(() => undefined)
+      .finally(() => setAuthReady(true));
+  }, [activeBrand]);
 
   const setActiveBrand = useCallback((brandSlug: string) => {
+    setAuthReady(false);
     storeSetActiveBrand(brandSlug);
     setActiveBrandState(brandSlug);
+    if (hasHqSession(brandSlug)) setAuthReady(true);
     try {
       window.localStorage.setItem(ACTIVE_BRAND_STORAGE_KEY, brandSlug);
     } catch {
@@ -46,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (brandSlug: string, identifier: string, password: string) => {
       const session = await loginWithPassword(brandSlug, identifier, password);
-      setBrandToken(brandSlug, { token: session.token, expiresAt: session.expires_at });
+      markHqSession(brandSlug, session.csrf_token);
       setVersion((v) => v + 1);
       setActiveBrand(brandSlug);
     },
@@ -60,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Best-effort server-side revoke; clear the local token regardless so
       // the operator is signed out of this app either way.
     }
-    setBrandToken(brandSlug, undefined);
+    clearHqSession(brandSlug);
     setVersion((v) => v + 1);
   }, []);
 
@@ -74,15 +92,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       brands: BRANDS,
       activeBrand,
-      signedInBrands: brandsWithTokens(),
+      signedInBrands: BRANDS.filter((brand) => hasHqSession(brand.slug)).map((brand) => brand.slug),
       setActiveBrand,
       signIn,
       signOut,
       version,
+      authReady,
     }),
-    // `version` is the deliberate re-render trigger for signedInBrands
-    // (tokenStore is a plain module singleton, not itself reactive).
-    [activeBrand, setActiveBrand, signIn, signOut, version],
+    // `version` re-renders after bootstrap/login/logout because session state is
+    // held in a small in-memory marker while the credential remains HttpOnly.
+    [activeBrand, setActiveBrand, signIn, signOut, version, authReady],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

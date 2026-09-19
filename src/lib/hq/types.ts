@@ -155,12 +155,17 @@ export type HqProfileSection =
       photos: HqProfilePhoto[];
       video: HqProfileVideo | null;
       preference: HqProfilePreference | null;
+      configured_fields?: Record<string, unknown>;
+      discovery_state: string;
     };
 
 export type HqConversationSummary = {
   id: string;
   status: "active" | "closed";
   created_at: string;
+  match_id?: string;
+  other_member?: { profile_id: string | null; display_name: string | null };
+  messages?: { id: string; sender_profile_id: string; kind: string; body: string | null; deleted: boolean; created_at: string; attachments: { id: string; kind: string; processing_state: string; deleted: boolean }[] }[];
 };
 
 export type HqProductSection = {
@@ -176,6 +181,10 @@ export type HqProductSection = {
   recent_conversations: HqConversationSummary[];
   blocks_given: number;
   blocks_received: number;
+  passes_given?: number;
+  passes_received?: number;
+  pass_history?: { direction: string; counterpart_profile_id: string | null; counterpart_display_name: string | null; created_at: string }[];
+  match_history?: { id?: string; direction: string; counterpart_profile_id: string | null; counterpart_display_name: string | null; created_at: string }[];
 };
 
 export type HqDelivery = {
@@ -225,6 +234,9 @@ export type HqAccountClosure = {
 };
 
 export type HqSafetySection = {
+  trust_score?: number;
+  trust_breakdown?: { kind: string; type: string; label: string; points: number; applies: boolean; occurred_at: string }[];
+  realme?: { check_type: "selfie" | "video" | "government_id"; status: string; submitted_at: string | null; reviewed_at: string | null }[];
   reports_filed_count: number;
   reports_received_count: number;
   recent_reports: HqRecentReport[];
@@ -500,6 +512,9 @@ export type HqCapability =
   | "admin.profile_photos.moderate"
   | "admin.realme_verifications.moderate"
   | "admin.identity_correction.manage"
+  | "admin.discovery_restrictions.manage"
+  | "admin.trust_adjustments.manage"
+  | "admin.trust_adjustments.reverse"
   | "admin.operators.read"
   | "admin.operators.manage"
   | "admin.brand_operations.manage"
@@ -550,6 +565,17 @@ export type HqCurrentOperator = {
 export type HqCurrentOperatorResponse = {
   operator: HqCurrentOperator;
 };
+
+export type HqOperatorSession = {
+  id: number;
+  device_name: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  last_used_at: string;
+  expires_at: string;
+  current: boolean;
+};
+export type HqTimelineEvent = { type: string; name: string; created_at: string; metadata: Record<string, unknown> };
 
 export type HqMfaEnrollment = {
   state: "pending";

@@ -14,6 +14,7 @@ export type AuthContextValue = {
   signOut: (brandSlug: string) => Promise<void>;
   /** Bumped whenever tokens change, so consumers keyed on it re-render. */
   version: number;
+  authReady: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

@@ -9,8 +9,12 @@ import {
   fetchHqMember360,
   fetchHqSecurityEvents,
   hqErrorMessage,
+  restrictProfileDiscovery,
+  restoreProfileDiscovery,
+  recordTrustAdjustment,
 } from "../../../lib/hq/api.ts";
 import { canManageIdentityCorrections } from "../../../lib/hq/enforcementAccess.ts";
+import { operatorHasCapability } from "../../../lib/hq/capabilities.ts";
 import { displayNameForMember } from "../../../lib/hq/parse.ts";
 import type { HqDiscoveryDiagnostic, HqMember360 } from "../../../lib/hq/types.ts";
 import { useHqBrand } from "../useHqBrand.ts";
@@ -183,6 +187,8 @@ export default function Member360Page() {
   const { brandName } = useHqBrand();
   const { operator } = useHqOperator();
   const canCorrectIdentity = canManageIdentityCorrections(operator);
+  const canManageDiscovery = operatorHasCapability(operator, "admin.discovery_restrictions.manage");
+  const canManageTrust = operatorHasCapability(operator, "admin.trust_adjustments.manage");
   const lookup = lookupParam ? decodeURIComponent(lookupParam) : "";
   const [load, setLoad] = useState<{ key: string; result: LoadResult | null }>({
     key: lookup,
@@ -522,6 +528,23 @@ export default function Member360Page() {
                     { label: "Photos", value: member.sections.profile.photo_count },
                   ]}
                 />
+                {canManageDiscovery ? (
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+                    <span className="hq-card__subtitle">Discovery: {member.sections.profile.discovery_state}</span>
+                    {member.sections.profile.discovery_state === "moderator_hidden" ? (
+                      <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => { void restoreProfileDiscovery(member.sections.profile.exists ? member.sections.profile.public_id : "").then(reloadMember).catch((error) => window.alert(hqErrorMessage(error))); }}>Restore to discovery</button>
+                    ) : (
+                      <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => { const reason = window.prompt("Restriction reason"); if (reason?.trim()) void restrictProfileDiscovery(member.sections.profile.exists ? member.sections.profile.public_id : "", reason.trim()).then(reloadMember).catch((error) => window.alert(hqErrorMessage(error))); }}>Hide from discovery</button>
+                    )}
+                  </div>
+                ) : null}
+                {member.sections.profile.configured_fields ? (
+                  <DataTable
+                    columns={[{ key: "field", header: "Configured field" }, { key: "value", header: "Value" }]}
+                    rows={Object.entries(member.sections.profile.configured_fields).filter(([key]) => !["id", "brand", "status", "visibility", "location", "options", "prompts", "counts", "verification", "publication", "completion", "publication_completion", "profile_completion"].includes(key)).map(([field, value]) => ({ field, value: typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? String(value) : JSON.stringify(value) }))}
+                    empty="No additional configured fields."
+                  />
+                ) : null}
                 {canCorrectIdentity ? (
                   <GenderEditor
                     profileId={member.sections.profile.public_id}
@@ -585,6 +608,8 @@ export default function Member360Page() {
               items={[
                 { label: "Likes given", value: member.sections.product.likes_given },
                 { label: "Likes received", value: member.sections.product.likes_received },
+                { label: "Passes given", value: member.sections.product.passes_given ?? "—" },
+                { label: "Passes received", value: member.sections.product.passes_received ?? "—" },
                 { label: "Active matches", value: member.sections.product.matches_active },
                 { label: "Hooks sent", value: member.sections.product.hooks_sent },
                 { label: "Hooks received", value: member.sections.product.hooks_received },
@@ -602,16 +627,28 @@ export default function Member360Page() {
             <DataTable
               columns={[
                 { key: "id", header: "Conversation" },
+                { key: "other", header: "Other member" },
                 { key: "status", header: "Status" },
+                { key: "messages", header: "Messages" },
                 { key: "created_at", header: "Created" },
               ]}
               rows={member.sections.product.recent_conversations.map((row) => ({
                 id: row.id,
                 status: row.status,
                 created_at: formatWhen(row.created_at),
+                other: row.other_member?.display_name ?? "—",
+                messages: row.messages?.length ?? 0,
               }))}
               empty="No recent conversations."
             />
+            {member.sections.product.recent_conversations.some((row) => row.messages?.length) ? (
+              <div className="hq-card__subsection">
+                <h3 className="hq-card__title">Message chronology</h3>
+                {member.sections.product.recent_conversations.flatMap((conversation) => (conversation.messages ?? []).map((message) => ({ conversation, message }))).slice(-50).map(({ conversation, message }) => (
+                  <p key={message.id} className="hq-muted"><strong>{conversation.other_member?.display_name ?? message.sender_profile_id}</strong> · {formatWhen(message.created_at)} · {message.deleted ? "deleted" : message.body ?? `[${message.kind}]`}</p>
+                ))}
+              </div>
+            ) : null}
 
             <div style={{ marginTop: 14 }}>
               <div className="hq-card__header">
@@ -690,6 +727,8 @@ export default function Member360Page() {
           >
             <StatGroup
               items={[
+                { label: "Trust Score", value: member.sections.safety.trust_score ?? "—" },
+                { label: "RealMe methods", value: member.sections.safety.realme?.length ?? 0 },
                 { label: "Reports filed", value: member.sections.safety.reports_filed_count },
                 { label: "Reports received", value: member.sections.safety.reports_received_count },
                 { label: "Enforcement count", value: member.sections.safety.enforcement_count },
@@ -705,6 +744,16 @@ export default function Member360Page() {
                 },
               ]}
             />
+            {member.sections.safety.trust_breakdown?.length ? (
+              <DataTable
+                columns={[{ key: "label", header: "Trust signal" }, { key: "points", header: "Points" }, { key: "occurred_at", header: "When" }]}
+                rows={member.sections.safety.trust_breakdown.slice(0, 10).map((entry, index) => ({ key: `${entry.type}-${index}`, label: entry.label, points: entry.applies ? entry.points : `${entry.points} (reversed)`, occurred_at: formatWhen(entry.occurred_at) }))}
+                empty="No trust signals."
+              />
+            ) : null}
+            {canManageTrust && member.sections.profile.exists ? (
+              <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => { if (!member.sections.profile.exists) return; const points = Number(window.prompt("Trust points to deduct (negative number)", "-1")); const reason = window.prompt("Trust adjustment reason code", "manual_moderation"); if (Number.isFinite(points) && points < 0 && reason?.trim()) void recordTrustAdjustment(member.sections.profile.public_id, points, reason.trim()).then(reloadMember).catch((error) => window.alert(hqErrorMessage(error))); }}>Adjust Trust Score</button>
+            ) : null}
             <DataTable
               columns={[
                 { key: "id", header: "Report" },

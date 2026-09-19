@@ -1,5 +1,5 @@
 import { ApiError } from "./errors.ts";
-import { getBrandToken, getActiveBrand, setBrandToken } from "./tokenStore.ts";
+import { getActiveBrand, getHqCsrfToken, clearHqSession } from "./tokenStore.ts";
 import { findBrand } from "../brands.ts";
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -53,8 +53,6 @@ export type ApiRequestOptions = {
    * (BrandSwitcher selection) — pass explicitly for e.g. sign-in, which
    * targets a brand before it's necessarily the active one yet. */
   brand?: string;
-  /** When false, do not send Authorization (sign-in itself). */
-  attachBearer?: boolean;
   /**
    * When false, a 401 does not clear the brand's cached token or notify the
    * unauthorized listener. Required for signed-out auth so invalid
@@ -85,22 +83,17 @@ export async function apiRequest(
     throw new UnconfiguredBrandError(brandSlug);
   }
 
-  const attachBearer = options.attachBearer ?? true;
   const invalidateOnUnauthorized = options.invalidateOnUnauthorized ?? true;
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
 
-  const token = attachBearer ? getBrandToken(brand.slug) : undefined;
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
+  const method = (init.method ?? "GET").toUpperCase();
+  const csrf = getHqCsrfToken(brand.slug);
+  if (csrf && !["GET", "HEAD", "OPTIONS"].includes(method)) headers.set("X-CSRF-Token", csrf);
 
-  // This app is deliberately not same-origin with any brand's API (see
-  // brands.ts) and never uses D8N's cookie session mode, so there is no
-  // cookie to send and no CSRF token to attach — Bearer-only, over CORS.
   const response = await fetch(`${brand.apiBase}${path}`, {
     ...init,
-    credentials: "omit",
+    credentials: "include",
     // HQ/admin JSON must never be served from a conditional cache entry. A 304
     // has no body; our parsers expect JSON and will fail with "Safety data
     // unavailable" even though auth succeeded.
@@ -121,7 +114,7 @@ export async function apiRequest(
 
   if (response.status === 401) {
     if (invalidateOnUnauthorized) {
-      setBrandToken(brand.slug, undefined);
+      clearHqSession(brand.slug);
       unauthorizedListener?.(brand.slug);
     }
     const code = parseErrorCode(parsed);

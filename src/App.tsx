@@ -11,6 +11,7 @@ import RealmeModerationPage from "./features/hq/pages/RealmeModerationPage.tsx";
 import ReportDetailPage from "./features/hq/pages/ReportDetailPage.tsx";
 import TrustSafetyPage from "./features/hq/pages/TrustSafetyPage.tsx";
 import UnavailableHqPage from "./features/hq/pages/UnavailableHqPage.tsx";
+import OperatorSecurityPage from "./features/hq/pages/OperatorSecurityPage.tsx";
 
 function HqPlannedPage() {
   const location = useLocation();
@@ -57,7 +58,7 @@ export default function App() {
         <Route path="infrastructure" element={<UnavailableHqPage path="/hq/infrastructure" />} />
         <Route path="deployments" element={<UnavailableHqPage path="/hq/deployments" />} />
         <Route path="data-health" element={<UnavailableHqPage path="/hq/data-health" />} />
-        <Route path="security" element={<UnavailableHqPage path="/hq/security" />} />
+        <Route path="security" element={<OperatorSecurityPage />} />
         <Route path="brands" element={<UnavailableHqPage path="/hq/brands" />} />
         <Route path="admin" element={<UnavailableHqPage path="/hq/admin" />} />
         <Route path="audit" element={<UnavailableHqPage path="/hq/audit" />} />

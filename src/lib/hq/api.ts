@@ -40,6 +40,8 @@ import type {
   HqAuthAttemptList,
   HqBanProfileBody,
   HqCurrentOperator,
+  HqOperatorSession,
+  HqTimelineEvent,
   HqDiscoveryDiagnostic,
   HqEnforcementList,
   HqHistoryParams,
@@ -76,6 +78,16 @@ import type {
 export async function fetchHqOperator(): Promise<HqCurrentOperator> {
   const data = await apiRequest("/api/v1/hq/operator");
   return parseCurrentOperatorResponse(data).operator;
+}
+
+export async function fetchHqOperatorSessions(): Promise<HqOperatorSession[]> {
+  const data = await apiRequest("/api/v1/hq/auth/sessions");
+  if (typeof data !== "object" || data === null || !("sessions" in data) || !Array.isArray(data.sessions)) return [];
+  return data.sessions as HqOperatorSession[];
+}
+
+export async function revokeHqOperatorSession(id: number): Promise<void> {
+  await apiRequest(`/api/v1/hq/auth/sessions/${id}`, { method: "DELETE" });
 }
 
 export async function startHqMfaEnrollment(): Promise<HqMfaEnrollmentResponse> {
@@ -210,6 +222,12 @@ export async function fetchHqEnforcements(
 ): Promise<HqEnforcementList> {
   const data = await apiRequest(memberPath(lookup, `/enforcements${historyQuery(params)}`));
   return parseEnforcementList(data);
+}
+
+export async function fetchHqMemberTimeline(lookup: string): Promise<HqTimelineEvent[]> {
+  const data = await apiRequest(memberPath(lookup, "/timeline"));
+  if (typeof data !== "object" || data === null || !("events" in data) || !Array.isArray(data.events)) return [];
+  return data.events as HqTimelineEvent[];
 }
 
 export async function fetchHqDiscoveryDiagnostic(lookup: string): Promise<HqDiscoveryDiagnostic> {
@@ -427,6 +445,23 @@ export async function correctProfileIdentity(
     body: JSON.stringify({ field, value, reason, ...(note ? { note } : {}) }),
   });
   return parseIdentityCorrectionResponse(data);
+}
+
+export async function restrictProfileDiscovery(profileId: string, reason: string, note?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/profiles/${encodeURIComponent(profileId)}/discovery_restriction`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason, note: note ?? null }),
+  });
+}
+
+export async function restoreProfileDiscovery(profileId: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/profiles/${encodeURIComponent(profileId)}/discovery_restriction`, { method: "DELETE" });
+}
+
+export async function recordTrustAdjustment(profileId: string, points: number, reasonCode: string, note?: string): Promise<void> {
+  await apiRequest(`/api/v1/admin/profiles/${encodeURIComponent(profileId)}/trust_adjustments`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ points, reason_code: reasonCode, note: note ?? null, idempotency_key: crypto.randomUUID() }),
+  });
 }
 
 export async function fetchManagedOperators(): Promise<HqManagedOperator[]> {

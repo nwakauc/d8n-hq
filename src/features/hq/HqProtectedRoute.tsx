@@ -11,7 +11,7 @@ type Props = {
 
 /** Sign-in + brand-admin gate for /hq. Non-admins cannot enter by typing the URL. */
 export function HqProtectedRoute({ children }: Props) {
-  const { activeBrand, signedInBrands, brands } = useAuth();
+  const { activeBrand, signedInBrands, brands, authReady } = useAuth();
   const location = useLocation();
   const adminAccess = useBrandAdminAccess();
 
@@ -24,6 +24,10 @@ export function HqProtectedRoute({ children }: Props) {
         />
       </HqStatusFrame>
     );
+  }
+
+  if (!authReady) {
+    return <HqStatusFrame><SessionStatusPage title="Restoring HQ session…" body="Checking the secure operator session." busy /></HqStatusFrame>;
   }
 
   const hasToken = activeBrand !== undefined && signedInBrands.includes(activeBrand);

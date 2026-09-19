@@ -351,6 +351,8 @@ function parseProfile(value: unknown): HqProfileSection {
     photos: row.photos.map(parsePhoto),
     video: parseVideo(row.video ?? null),
     preference: parsePreference(row.preference ?? null),
+    configured_fields: isRecord(row.configured_fields) ? row.configured_fields : undefined,
+    discovery_state: typeof row.discovery_state === "string" ? row.discovery_state : "unknown",
   };
 }
 
@@ -379,10 +381,20 @@ function parseProduct(value: unknown): HqProductSection {
         id: requireString(conv.id, "conversation_id"),
         status,
         created_at: requireString(conv.created_at, "conversation_created_at"),
+        match_id: typeof conv.match_id === "string" ? conv.match_id : undefined,
+        other_member: isRecord(conv.other_member) ? { profile_id: nullableString(conv.other_member.profile_id), display_name: nullableString(conv.other_member.display_name) } : undefined,
+        messages: Array.isArray(conv.messages) ? conv.messages.map((raw) => {
+          const message = requireRecord(raw, "message");
+          return { id: requireString(message.id, "message_id"), sender_profile_id: requireString(message.sender_profile_id, "message_sender"), kind: requireString(message.kind, "message_kind"), body: nullableString(message.body), deleted: message.deleted === true, created_at: requireString(message.created_at, "message_created"), attachments: Array.isArray(message.attachments) ? message.attachments.map((rawAttachment) => { const attachment = requireRecord(rawAttachment, "message_attachment"); return { id: requireString(attachment.id, "attachment_id"), kind: requireString(attachment.kind, "attachment_kind"), processing_state: requireString(attachment.processing_state, "attachment_processing"), deleted: attachment.deleted === true }; }) : [] };
+        }) : undefined,
       };
     }),
     blocks_given: requireNumber(row.blocks_given, "blocks_given"),
     blocks_received: requireNumber(row.blocks_received, "blocks_received"),
+    passes_given: typeof row.passes_given === "number" ? row.passes_given : undefined,
+    passes_received: typeof row.passes_received === "number" ? row.passes_received : undefined,
+    pass_history: Array.isArray(row.pass_history) ? row.pass_history.map((raw) => { const item = requireRecord(raw, "pass_history"); return { direction: requireString(item.direction, "pass_direction"), counterpart_profile_id: nullableString(item.counterpart_profile_id), counterpart_display_name: nullableString(item.counterpart_display_name), created_at: requireString(item.created_at, "pass_created") }; }) : undefined,
+    match_history: Array.isArray(row.match_history) ? row.match_history.map((raw) => { const item = requireRecord(raw, "match_history"); return { id: typeof item.id === "string" ? item.id : undefined, direction: requireString(item.direction, "match_direction"), counterpart_profile_id: nullableString(item.counterpart_profile_id), counterpart_display_name: nullableString(item.counterpart_display_name), created_at: requireString(item.created_at, "match_created") }; }) : undefined,
   };
 }
 
@@ -512,6 +524,15 @@ function parseSafety(value: unknown): HqSafetySection {
     };
   }
   return {
+    trust_score: typeof row.trust_score === "number" ? row.trust_score : undefined,
+    trust_breakdown: Array.isArray(row.trust_breakdown) ? row.trust_breakdown.map((entry) => {
+      const item = requireRecord(entry, "trust_breakdown");
+      return { kind: requireString(item.kind, "trust_kind"), type: requireString(item.type, "trust_type"), label: requireString(item.label, "trust_label"), points: requireNumber(item.points, "trust_points"), applies: item.applies === true, occurred_at: requireString(item.occurred_at, "trust_occurred_at") };
+    }) : undefined,
+    realme: Array.isArray(row.realme) ? row.realme.map((entry) => {
+      const item = requireRecord(entry, "realme_entry");
+      return { check_type: requireString(item.check_type, "realme_check_type") as "selfie" | "video" | "government_id", status: requireString(item.status, "realme_status"), submitted_at: nullableString(item.submitted_at), reviewed_at: nullableString(item.reviewed_at) };
+    }) : undefined,
     reports_filed_count: requireNumber(row.reports_filed_count, "reports_filed"),
     reports_received_count: requireNumber(row.reports_received_count, "reports_received"),
     recent_reports: row.recent_reports.map(parseReport),
@@ -940,6 +961,9 @@ const HQ_CAPABILITIES = new Set<string>([
   "admin.trust_adjustments.reverse",
   "admin.discovery_restrictions.manage",
   "admin.identity_correction.manage",
+  "admin.discovery_restrictions.manage",
+  "admin.trust_adjustments.manage",
+  "admin.trust_adjustments.reverse",
   "admin.community.read",
   "admin.community.moderate",
   "admin.operators.read",

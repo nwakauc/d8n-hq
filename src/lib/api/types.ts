@@ -5,14 +5,13 @@ export type PasswordAuthRequest = {
   password: string;
   device_name: string;
   /** Always "token" in this app — see tokenStore.ts for why. */
-  session_mode: "token";
+  session_mode: "hq_cookie";
 };
 
 export type PasswordAuthSessionResponse = {
-  token: string;
-  token_type: "Bearer";
   expires_at: string;
   user_id: number;
   brand: { slug: string; name: string };
-  identifier: { kind: IdentifierKind; verified: boolean; masked_destination: string };
+  identifier?: { kind: IdentifierKind; verified: boolean; masked_destination: string };
+  csrf_token?: string;
 };

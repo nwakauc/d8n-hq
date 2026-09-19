@@ -18,32 +18,32 @@ function parseIdentifierKind(value: unknown): IdentifierKind {
 /**
  * Deliberately lenient: D8N's login response carries fields this app has no
  * use for (verification_required, onboarding, ...) — those come along for
- * the ride and are ignored rather than re-validated here. This app only
- * ever requests `session_mode: "token"`, so a response without a token is
- * itself an invalid-response condition, not the cookie-mode branch DateZA's
- * client has to handle.
+ * the ride and are ignored rather than re-validated here. HQ receives an
+ * HttpOnly operator cookie; only the CSRF value is retained in memory.
  */
 function parseSessionResponse(data: unknown): PasswordAuthSessionResponse {
+  if (isRecord(data) && isRecord(data.session) && typeof data.session.expires_at === "string") {
+    const operator = isRecord(data.operator) ? data.operator : {};
+    return {
+      expires_at: data.session.expires_at,
+      user_id: typeof operator.user_id === "number" ? operator.user_id : 0,
+      brand: { slug: typeof operator.brand === "string" ? operator.brand : "", name: "" },
+      csrf_token: typeof data.session.csrf_token === "string" ? data.session.csrf_token : undefined,
+    };
+  }
   if (
     !isRecord(data) ||
-    typeof data.token !== "string" ||
-    data.token === "" ||
-    data.token_type !== "Bearer" ||
     typeof data.expires_at !== "string" ||
     typeof data.user_id !== "number" ||
     !isRecord(data.brand) ||
     typeof data.brand.slug !== "string" ||
     typeof data.brand.name !== "string" ||
-    !isRecord(data.identifier) ||
-    typeof data.identifier.verified !== "boolean" ||
-    typeof data.identifier.masked_destination !== "string"
+    !isRecord(data.identifier) || typeof data.identifier.verified !== "boolean" || typeof data.identifier.masked_destination !== "string"
   ) {
     throw new ApiError(502, undefined, "invalid_auth_response");
   }
 
   return {
-    token: data.token,
-    token_type: "Bearer",
     expires_at: data.expires_at,
     user_id: data.user_id,
     brand: { slug: data.brand.slug, name: data.brand.name },
@@ -52,6 +52,7 @@ function parseSessionResponse(data: unknown): PasswordAuthSessionResponse {
       verified: data.identifier.verified,
       masked_destination: data.identifier.masked_destination,
     },
+    csrf_token: typeof data.csrf_token === "string" ? data.csrf_token : undefined,
   };
 }
 
@@ -72,17 +73,25 @@ export function loginWithPassword(
     identifier,
     password,
     device_name: DEVICE_NAME,
-    session_mode: "token",
+    session_mode: "hq_cookie",
   };
-  return apiRequest("/api/v1/auth/password/login", jsonInit("POST", body), {
+  return apiRequest("/api/v1/hq/auth/login", jsonInit("POST", body), {
     brand: brandSlug,
-    attachBearer: false,
     invalidateOnUnauthorized: false,
   }).then(parseSessionResponse);
 }
 
 export function revokeCurrentSession(brandSlug: string): Promise<void> {
-  return apiRequest("/api/v1/auth/session", { method: "DELETE" }, { brand: brandSlug }).then(
+  return apiRequest("/api/v1/hq/auth/session", { method: "DELETE" }, { brand: brandSlug }).then(
     () => undefined,
   );
+}
+
+export function restoreHqSession(brandSlug: string): Promise<{ expires_at: string; csrf_token: string }> {
+  return apiRequest("/api/v1/hq/auth/session", { method: "GET" }, { brand: brandSlug }).then((data) => {
+    if (typeof data !== "object" || data === null || !("session" in data)) throw new ApiError(502, undefined, "invalid_auth_response");
+    const session = (data as { session: { expires_at?: unknown; csrf_token?: unknown } }).session;
+    if (typeof session.expires_at !== "string" || typeof session.csrf_token !== "string") throw new ApiError(502, undefined, "invalid_auth_response");
+    return { expires_at: session.expires_at, csrf_token: session.csrf_token };
+  });
 }
