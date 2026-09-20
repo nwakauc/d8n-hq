@@ -2,13 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchCommandCentreBrands,
   fetchCommandCentreHealth,
+  fetchCommandCentreRegistrationTrends,
   fetchD8nVersion,
+  fetchHqAnalyticsOverview,
+  fetchHqProductFunnel,
+  fetchHqProductTrends,
   fetchHqSecurityAlerts,
   hqErrorMessage,
 } from "../../../lib/hq/api.ts";
 import type {
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
+  HqAnalyticsOverview,
+  HqRegistrationTrendResponse,
+  HqProductFunnel,
+  HqProductTrends,
   HqSecurityAlertList,
   HqVersionInfo,
 } from "../../../lib/hq/types.ts";
@@ -20,10 +28,18 @@ export type CommandCentreData = {
   brands: HqCommandCentreBrandsResponse | null;
   alerts: HqSecurityAlertList | null;
   version: HqVersionInfo | null;
+  registrations: HqRegistrationTrendResponse | null;
+  funnel: HqProductFunnel | null;
+  analytics: HqAnalyticsOverview | null;
+  productTrends: HqProductTrends | null;
   healthError: string | null;
   brandsError: string | null;
   alertsError: string | null;
   versionError: string | null;
+  registrationsError: string | null;
+  funnelError: string | null;
+  analyticsError: string | null;
+  productTrendsError: string | null;
 };
 
 const EMPTY_DATA: CommandCentreData = {
@@ -31,19 +47,29 @@ const EMPTY_DATA: CommandCentreData = {
   brands: null,
   alerts: null,
   version: null,
+  registrations: null,
+  funnel: null,
+  analytics: null,
+  productTrends: null,
   healthError: null,
   brandsError: null,
   alertsError: null,
   versionError: null,
+  registrationsError: null,
+  funnelError: null,
+  analyticsError: null,
+  productTrendsError: null,
 };
 
 export function useCommandCentreData({
   canAnalytics,
   canAlerts,
+  timeRange = "last_30d",
   refreshNonce = 0,
 }: {
   canAnalytics: boolean;
   canAlerts: boolean;
+  timeRange?: string;
   refreshNonce?: number;
 }) {
   const [load, setLoad] = useState<CommandCentreLoadState>("loading");
@@ -78,6 +104,42 @@ export function useCommandCentreData({
             next.brandsError = hqErrorMessage(error);
           }),
       );
+      tasks.push(
+        fetchCommandCentreRegistrationTrends(timeRange)
+          .then((registrations) => {
+            next.registrations = registrations;
+          })
+          .catch((error) => {
+            next.registrationsError = hqErrorMessage(error);
+          }),
+      );
+      tasks.push(
+        fetchHqProductFunnel(timeRange)
+          .then((funnel) => {
+            next.funnel = funnel;
+          })
+          .catch((error) => {
+            next.funnelError = hqErrorMessage(error);
+          }),
+      );
+      tasks.push(
+        fetchHqAnalyticsOverview()
+          .then((analytics) => {
+            next.analytics = analytics;
+          })
+          .catch((error) => {
+            next.analyticsError = hqErrorMessage(error);
+          }),
+      );
+      tasks.push(
+        fetchHqProductTrends(timeRange)
+          .then((productTrends) => {
+            next.productTrends = productTrends;
+          })
+          .catch((error) => {
+            next.productTrendsError = hqErrorMessage(error);
+          }),
+      );
     }
     if (canAlerts) {
       tasks.push(
@@ -109,13 +171,17 @@ export function useCommandCentreData({
     return () => {
       cancelled = true;
     };
-  }, [canAlerts, canAnalytics, refreshNonce]);
+  }, [canAlerts, canAnalytics, refreshNonce, timeRange]);
 
   const partialErrors = [
     data.healthError,
     data.brandsError,
     data.alertsError,
     data.versionError,
+    data.registrationsError,
+    data.funnelError,
+    data.analyticsError,
+    data.productTrendsError,
   ].filter((message): message is string => Boolean(message));
 
   return {

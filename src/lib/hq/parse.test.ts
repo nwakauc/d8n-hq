@@ -8,7 +8,69 @@ import {
   parseCurrentOperatorResponse,
   parseRealmeModerationResult,
   parseRealmeQueue,
+  parseRegistrationTrendResponse,
+  parseProductFunnel,
+  parseProductTrends,
 } from "./parse.ts";
+
+describe("parseRegistrationTrendResponse", () => {
+  it("accepts the bounded production registration trend contract", () => {
+    const response = parseRegistrationTrendResponse({
+      generated_at: "2026-08-30T12:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      window: "last_30d",
+      definition: "Kept brand memberships created on each brand-local calendar date.",
+      brands: [{ brand: "dateza", status: "available", total: 2, points: { "2026-08-29": 2 } }],
+    });
+    expect(response.brands[0]?.points["2026-08-29"]).toBe(2);
+  });
+});
+
+describe("parseProductFunnel", () => {
+  it("keeps uninstrumented funnel stages unavailable instead of turning them into zero", () => {
+    const funnel = parseProductFunnel({
+      funnel: {
+        brand: "dateza",
+        window: "last_7d",
+        generated_at: "2026-08-30T12:00:00Z",
+        time_zone: "Africa/Johannesburg",
+        stages: [{
+          id: "onboarding_completed",
+          definition: "No authoritative onboarding-completed timestamp is persisted yet.",
+          status: "unavailable",
+          unit: "members",
+          conversion_from_previous: null,
+          conversion_from_registration: null,
+          limitations: ["No authoritative onboarding-completed timestamp is persisted yet."],
+        }],
+      },
+    });
+    expect(funnel.stages[0]?.status).toBe("unavailable");
+    expect(funnel.stages[0]).not.toHaveProperty("value");
+  });
+});
+
+describe("parseProductTrends", () => {
+  it("parses only explicit count series from the product intelligence contract", () => {
+    const trends = parseProductTrends({
+      trends: {
+        brand: "dateza",
+        window: "last_7d",
+        generated_at: "2026-08-30T12:00:00Z",
+        time_zone: "Africa/Johannesburg",
+        series: [{
+          id: "likes",
+          definition: "Kept Like rows created on each brand-local calendar date.",
+          status: "available",
+          unit: "count",
+          limitations: [],
+          points: { "2026-08-30": 7 },
+        }],
+      },
+    });
+    expect(trends.series[0]?.points["2026-08-30"]).toBe(7);
+  });
+});
 
 describe("parseCurrentOperatorResponse", () => {
   it("accepts the production founder operator contract", () => {

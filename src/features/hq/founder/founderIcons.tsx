@@ -2,10 +2,17 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   AlertTriangle,
+  BadgeCheck,
+  CalendarDays,
+  CircleAlert,
+  ClipboardCheck,
+  Eye,
   Heart,
+  HeartHandshake,
   Image,
   Info,
   MessageCircle,
+  Rocket,
   Search,
   Shield,
   UserPlus,
@@ -21,8 +28,15 @@ export type FounderIconName =
   | "shield"
   | "message-circle"
   | "alert-triangle"
+  | "badge-check"
+  | "calendar-days"
+  | "circle-alert"
+  | "clipboard-check"
+  | "eye"
+  | "heart-handshake"
   | "image"
   | "search"
+  | "rocket"
   | "info";
 
 const ICONS: Record<FounderIconName, LucideIcon> = {
@@ -33,8 +47,15 @@ const ICONS: Record<FounderIconName, LucideIcon> = {
   shield: Shield,
   "message-circle": MessageCircle,
   "alert-triangle": AlertTriangle,
+  "badge-check": BadgeCheck,
+  "calendar-days": CalendarDays,
+  "circle-alert": CircleAlert,
+  "clipboard-check": ClipboardCheck,
+  eye: Eye,
+  "heart-handshake": HeartHandshake,
   image: Image,
   search: Search,
+  rocket: Rocket,
   info: Info,
 };
 

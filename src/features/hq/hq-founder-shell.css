@@ -1,7 +1,7 @@
 /* Founder light experience — HQ application shell (all /hq routes). */
 
 .hq-root[data-hq-experience="founder"] {
-  --hq-bg: #f0f2f5;
+  --hq-bg: #f5f7fb;
   --hq-bg-elevated: #fcfbf9;
   --hq-bg-card: #ffffff;
   --hq-bg-card-hover: #f7f5f1;
@@ -22,7 +22,7 @@
   --hq-info: #2563eb;
   --hq-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset, 0 8px 24px rgba(24, 24, 27, 0.06);
   --hq-surface-sidebar: #fcfbf9;
-  --hq-surface-header: rgba(252, 251, 249, 0.92);
+  --hq-surface-header: rgba(255, 255, 255, 0.94);
   --hq-surface-scrim: rgba(24, 24, 27, 0.28);
   --hq-bg-gradient-1: rgba(59, 108, 255, 0.05);
   --hq-bg-gradient-2: rgba(31, 157, 99, 0.04);
@@ -49,13 +49,8 @@
 
 .hq-root[data-hq-experience="founder"] .hq-nav-link[aria-current="page"] {
   background: rgba(24, 24, 27, 0.06);
-  border-color: var(--hq-border-strong);
+  border-color: var(--hq-border);
   color: var(--hq-text);
-}
-
-.hq-root[data-hq-experience="founder"] .hq-nav-link__meta {
-  color: var(--hq-text-faint);
-  opacity: 0.75;
 }
 
 .hq-root[data-hq-experience="founder"] .hq-main {
@@ -237,21 +232,6 @@
   .hq-nav-accordion__chevron {
     transition: none;
   }
-}
-
-.hq-root[data-hq-experience="founder"] .hq-nav-accordion__trigger {
-  color: var(--hq-text-faint);
-}
-
-.hq-root[data-hq-experience="founder"] .hq-nav-accordion__trigger:hover,
-.hq-root[data-hq-experience="founder"] .hq-nav-accordion__trigger[aria-expanded="true"] {
-  color: var(--hq-text-muted);
-}
-
-.hq-root[data-hq-experience="founder"] .hq-nav-link--active,
-.hq-root[data-hq-experience="founder"] .hq-nav-link.hq-nav-link--active {
-  background: rgba(24, 24, 27, 0.06);
-  border-color: var(--hq-border-strong);
 }
 
 .hq-root[data-hq-experience="founder"] .hq-nav-link--later {
