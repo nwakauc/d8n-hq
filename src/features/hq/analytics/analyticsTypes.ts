@@ -20,3 +20,15 @@ export function memberCohortPath(date: string): string {
   const query = new URLSearchParams({ created_from: date, created_to: date });
   return `/hq/members?${query.toString()}`;
 }
+
+/** Members created within a health-snapshot window (e.g. `health.windows.today`). */
+export function memberCreatedWindowPath(window: { start_at: string; end_at: string }): string {
+  const query = new URLSearchParams({ created_from: window.start_at, created_to: window.end_at });
+  return `/hq/members?${query.toString()}`;
+}
+
+/** Members last active within a health-snapshot window. */
+export function memberActiveWindowPath(window: { start_at: string; end_at: string }): string {
+  const query = new URLSearchParams({ last_active_from: window.start_at, last_active_to: window.end_at });
+  return `/hq/members?${query.toString()}`;
+}
