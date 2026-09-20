@@ -197,7 +197,7 @@ export function FounderOverview({
               <FounderRecentErrors />
             </div>
             <div className="founder-col-6">
-              <FounderRecentReports health={health} />
+              <FounderRecentReports />
             </div>
           </div>
 

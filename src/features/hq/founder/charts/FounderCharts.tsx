@@ -22,22 +22,18 @@ type DonutSegment = {
 
 export type PulseGroupedBarRow = {
   window: string;
-  active: number;
-  newMembers: number;
-  matches: number;
+  [seriesKey: string]: number | string;
 };
 
-const PULSE_SERIES = [
-  { key: "active", label: "Active users", color: "#2563eb" },
-  { key: "newMembers", label: "New members", color: "#16a34a" },
-  { key: "matches", label: "Matches", color: "#e11d48" },
-] as const;
+export type PulseSeriesSpec = { key: string; label: string; color: string };
 
 export function FounderPulseGroupedBarChart({
   rows,
+  series,
   ariaLabel,
 }: {
   rows: PulseGroupedBarRow[];
+  series: readonly PulseSeriesSpec[];
   ariaLabel: string;
 }) {
   return (
@@ -65,12 +61,12 @@ export function FounderPulseGroupedBarChart({
                 fontSize: 12,
               }}
             />
-            {PULSE_SERIES.map((series) => (
+            {series.map((spec) => (
               <Bar
-                key={series.key}
-                dataKey={series.key}
-                name={series.label}
-                fill={series.color}
+                key={spec.key}
+                dataKey={spec.key}
+                name={spec.label}
+                fill={spec.color}
                 radius={[3, 3, 0, 0]}
                 isAnimationActive={false}
               />
@@ -80,9 +76,8 @@ export function FounderPulseGroupedBarChart({
       </div>
       <figcaption className="visually-hidden">
         {rows
-          .map(
-            (row) =>
-              `${row.window}: active ${row.active}, new ${row.newMembers}, matches ${row.matches}`,
+          .map((row) =>
+            `${row.window}: ${series.map((spec) => `${spec.label} ${row[spec.key]}`).join(", ")}`,
           )
           .join("; ")}
       </figcaption>

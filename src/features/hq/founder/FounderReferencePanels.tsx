@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
-import type {
-  HqCommandCentreHealth,
-  HqSecurityAlertList,
-  HqVersionInfo,
-} from "../../../lib/hq/types.ts";
+import type { HqSecurityAlertList, HqVersionInfo } from "../../../lib/hq/types.ts";
 import { formatRelativeTime } from "./formatRelativeTime.ts";
 import { FounderIcon, FounderIconBadge, type FounderIconName } from "./founderIcons.tsx";
 import { humanizeSecurityEvent } from "./securityEventLabels.ts";
@@ -16,10 +12,6 @@ import { FounderHorizontalBars } from "./charts/FounderCharts.tsx";
  * so wiring a real endpoint later only means passing data in, not rebuilding UI. */
 function NeedsBackendNote({ children }: { children: ReactNode }) {
   return <p className="founder-reference-empty founder-reference-empty--note">{children}</p>;
-}
-
-function metricCount(metric: { status: string; value?: number | Record<string, number> }): string | number {
-  return metric.status === "available" && typeof metric.value === "number" ? metric.value : "—";
 }
 
 function CoveragePanel({
@@ -289,18 +281,27 @@ export function FounderRecentErrors() {
   );
 }
 
-export function FounderRecentReports({ health }: { health: HqCommandCentreHealth }) {
+/** Queue counts (open/awaiting/photos) already live in the Trust & Safety panel
+ * below — this card is for the report rows themselves, which need a list
+ * endpoint (see HQ-BACKEND-TODO.md #6) rather than repeating those counts. */
+export function FounderRecentReports() {
   return (
-    <CoveragePanel title="Recent reports" subtitle="Trust queue requiring review." icon="shield" tone="amber">
-      <ul className="founder-reference-list">
-        <li className="founder-reference-list__row"><span>Open reports</span><strong>{metricCount(health.trust_safety.open_reports)}</strong></li>
-        <li className="founder-reference-list__row"><span>Awaiting decision</span><strong>{metricCount(health.trust_safety.awaiting_decision)}</strong></li>
-        <li className="founder-reference-list__row"><span>Pending photos</span><strong>{metricCount(health.trust_safety.pending_photo_reviews)}</strong></li>
-      </ul>
-      <NeedsBackendNote>
-        Report subject/type/evidence preview needs backend implementation — the queue counts above are
-        real; per-report detail rows will land once the reports list endpoint ships.
-      </NeedsBackendNote>
+    <CoveragePanel title="Recent reports" subtitle="Latest items in the trust queue." icon="shield" tone="amber">
+      <div className="founder-error-table" role="table" aria-label="Recent reports">
+        <div className="founder-error-table__head" role="row">
+          <span role="columnheader">Reported</span>
+          <span role="columnheader">Reason</span>
+          <span role="columnheader">Brand</span>
+          <span role="columnheader">Status</span>
+        </div>
+        <div className="founder-error-table__empty" role="row">
+          <span role="cell" className="founder-reference-empty founder-reference-empty--large">
+            Needs backend implementation: there is no paginated reports list under the HQ API yet —
+            only aggregate counts (shown in Trust &amp; Safety below). The report data itself
+            (reason, evidence, reporter/reported profile) already exists.
+          </span>
+        </div>
+      </div>
       <Link className="founder-link-arrow" to="/hq/trust-safety">View trust queue</Link>
     </CoveragePanel>
   );

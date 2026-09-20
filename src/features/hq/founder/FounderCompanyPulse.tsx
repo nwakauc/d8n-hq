@@ -9,15 +9,10 @@ const PULSE_WINDOWS = [
   { key: "last_30d", label: "30 days" },
 ] as const;
 
+/** "Active users" already has its own dedicated windowed panel
+ * (FounderActiveUsers) — this card's job is New members and Matches across
+ * the same windows, which nothing else on the dashboard shows past "today." */
 const PULSE_METRICS = [
-  {
-    key: "active",
-    title: "Active users",
-    color: "#2563eb",
-    dataKey: "active" as const,
-    pick: (health: HqCommandCentreHealth, windowKey: string) =>
-      health.activity.active_users[windowKey],
-  },
   {
     key: "new",
     title: "New members",
@@ -37,18 +32,13 @@ const PULSE_METRICS = [
 ] as const;
 
 export function FounderCompanyPulse({ health }: { health: HqCommandCentreHealth }) {
-  const chartRows = PULSE_WINDOWS.map((window) => {
-    const active = presentMetric(PULSE_METRICS[0].pick(health, window.key));
-    const newMembers = presentMetric(PULSE_METRICS[1].pick(health, window.key));
-    const matches = presentMetric(PULSE_METRICS[2].pick(health, window.key));
-
-    return {
-      window: health.windows[window.key]?.label ?? window.label,
-      active: active.numeric ?? 0,
-      newMembers: newMembers.numeric ?? 0,
-      matches: matches.numeric ?? 0,
-    };
-  });
+  const series = PULSE_METRICS.map((metric) => ({ key: metric.dataKey, label: metric.title, color: metric.color }));
+  const chartRows = PULSE_WINDOWS.map((window) => ({
+    window: health.windows[window.key]?.label ?? window.label,
+    ...Object.fromEntries(
+      PULSE_METRICS.map((metric) => [metric.dataKey, presentMetric(metric.pick(health, window.key)).numeric ?? 0]),
+    ),
+  }));
 
   return (
     <section className="founder-panel founder-panel--pulse" aria-labelledby="founder-pulse-title">
@@ -58,7 +48,7 @@ export function FounderCompanyPulse({ health }: { health: HqCommandCentreHealth 
             Company pulse
           </h2>
           <p className="founder-panel__subtitle">
-            Aggregate windows — not a historical time series.
+            New members and matches across snapshot windows — not a historical time series.
           </p>
         </div>
         <FounderMetricInfo
@@ -71,7 +61,8 @@ export function FounderCompanyPulse({ health }: { health: HqCommandCentreHealth 
       <div className="founder-pulse-layout">
         <FounderPulseGroupedBarChart
           rows={chartRows}
-          ariaLabel="Active users, new members, and matches grouped by snapshot window"
+          series={series}
+          ariaLabel="New members and matches grouped by snapshot window"
         />
         <ul className="founder-pulse-legend">
           {PULSE_METRICS.map((metric) => (
