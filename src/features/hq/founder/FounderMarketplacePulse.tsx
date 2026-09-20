@@ -3,24 +3,26 @@ import { presentMetric } from "../commandCentreMetric.ts";
 import { FounderIcon, type FounderIconName } from "./founderIcons.tsx";
 import { FounderMetricInfo, FounderMetricValue } from "./FounderMetricInfo.tsx";
 
+/** Likes/matches/conversations already headline the hero KPI strip — this
+ * panel adds the time-to-first-X medians instead of repeating those counts. */
 const ENGAGEMENT = [
   {
-    key: "likes",
-    label: "Likes",
+    key: "time-to-like",
+    label: "Time to first like",
     icon: "heart" as FounderIconName,
-    pick: (h: HqCommandCentreHealth) => h.marketplace.likes_created.today,
+    pick: (h: HqCommandCentreHealth) => h.marketplace.time_to_first_like_median,
   },
   {
-    key: "matches",
-    label: "Matches",
+    key: "time-to-match",
+    label: "Time to first match",
     icon: "heart" as FounderIconName,
-    pick: (h: HqCommandCentreHealth) => h.marketplace.matches_created.today,
+    pick: (h: HqCommandCentreHealth) => h.marketplace.time_to_first_match_median,
   },
   {
-    key: "conversations",
-    label: "Conversations",
+    key: "time-to-conversation",
+    label: "Time to first conversation",
     icon: "message-circle" as FounderIconName,
-    pick: (h: HqCommandCentreHealth) => h.marketplace.conversations_created.today,
+    pick: (h: HqCommandCentreHealth) => h.marketplace.time_to_first_conversation_median,
   },
 ] as const;
 
@@ -60,12 +62,8 @@ export function FounderMarketplacePulse({ health }: { health: HqCommandCentreHea
               <span className="founder-marketplace-stat__label">
                 <FounderIcon name={item.icon} size={16} className="founder-marketplace-stat__icon" />
                 {item.label}
-                {item.key === "likes" ? (
-                  <FounderMetricInfo
-                    metric={metric}
-                    label="Marketplace engagement"
-                    windowLabel={health.windows.today?.label}
-                  />
+                {item.key === "time-to-like" ? (
+                  <FounderMetricInfo metric={metric} label="Marketplace engagement" />
                 ) : null}
               </span>
               <FounderMetricValue presentation={presentation} large />
