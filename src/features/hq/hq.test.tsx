@@ -816,6 +816,17 @@ describe("D8N HQ Phase 1 integration", () => {
     renderAt("/hq");
     expect(await screen.findByRole("heading", { name: /Founder/i })).toBeInTheDocument();
     expect(await screen.findByText(/Total members/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Daily registrations/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Active users/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Engagement funnel/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Marketplace trends/i })).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: /Brand context/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Marketplace pools/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Retention/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Devices & platforms/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Notification health/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Recent errors/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Recent reports/i })).toBeInTheDocument();
     expect(await screen.findByText(/Company pulse/i)).toBeInTheDocument();
     expect(await screen.findByText(/Needs your attention/i)).toBeInTheDocument();
   });

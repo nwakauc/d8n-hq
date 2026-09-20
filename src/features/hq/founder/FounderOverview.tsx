@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { useHqBrand } from "../useHqBrand.ts";
+import { AnalyticsToolbar } from "../analytics/AnalyticsToolbar.tsx";
+import type { HqAnalyticsRange, HqBrandScope } from "../analytics/analyticsTypes.ts";
 import { founderGreeting } from "../commandCentreMetric.ts";
 import type { CommandCentreData, CommandCentreLoadState } from "../hooks/useCommandCentreData.ts";
 import { formatRelativeTime } from "./formatRelativeTime.ts";
@@ -12,6 +14,21 @@ import { FounderProfileHealth } from "./FounderProfileHealth.tsx";
 import { FounderSecurityAlerts } from "./FounderSecurityAlerts.tsx";
 import { FounderSystemStatus } from "./FounderSystemStatus.tsx";
 import { FounderTrustSafety } from "./FounderTrustSafety.tsx";
+import { DailyRegistrationsPanel } from "../analytics/DailyRegistrationsPanel.tsx";
+import { DeletionsPanel } from "../analytics/DeletionsPanel.tsx";
+import { FounderEngagementFunnel } from "./FounderEngagementFunnel.tsx";
+import { FounderActiveUsers, FounderDemographics } from "./FounderPeoplePulse.tsx";
+import { FounderMarketplaceTrends } from "./FounderMarketplaceTrends.tsx";
+import {
+  FounderDevicesAndPlatforms,
+  FounderLiveActivity,
+  FounderMarketplacePools,
+  FounderNotificationHealth,
+  FounderRecentErrors,
+  FounderRecentReports,
+  FounderRetention,
+  FounderSystemHealth,
+} from "./FounderReferencePanels.tsx";
 import "./founder.css";
 
 export function FounderOverview({
@@ -19,15 +36,23 @@ export function FounderOverview({
   data,
   partialErrors,
   canAnalytics,
-  canAlerts,
   onRefresh,
+  scope,
+  timeRange,
+  brands,
+  onScopeChange,
+  onTimeRangeChange,
 }: {
   load: CommandCentreLoadState;
   data: CommandCentreData;
   partialErrors: string[];
   canAnalytics: boolean;
-  canAlerts: boolean;
   onRefresh: () => void;
+  scope: string;
+  timeRange: HqAnalyticsRange;
+  brands: string[];
+  onScopeChange: (scope: HqBrandScope) => void;
+  onTimeRangeChange: (range: HqAnalyticsRange) => void;
 }) {
   const { brandName } = useHqBrand();
   const health = data.health;
@@ -96,6 +121,86 @@ export function FounderOverview({
             </div>
           </div>
 
+          <div className="founder-context-bar">
+            <AnalyticsToolbar
+              scope={scope}
+              range={timeRange}
+              brands={brands}
+              onScopeChange={onScopeChange}
+              onRangeChange={onTimeRangeChange}
+            />
+            <span className="founder-context-bar__hint">All dashboard figures use the selected scope and period where supported.</span>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-4">
+              <DailyRegistrationsPanel data={data.registrations} scope={scope} loading={false} />
+            </div>
+            <div className="founder-col-3">
+              <FounderActiveUsers analytics={data.analytics} />
+            </div>
+            <div className="founder-col-2">
+              <DeletionsPanel />
+            </div>
+            <div className="founder-col-3">
+              <FounderLiveActivity alerts={data.alerts} error={data.alertsError} />
+            </div>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-5">
+              <FounderEngagementFunnel funnel={data.funnel} error={data.funnelError} />
+            </div>
+            <div className="founder-col-3">
+              <FounderMarketplacePulse health={health} />
+            </div>
+            <div className="founder-col-4">
+              <FounderProfileHealth health={health} />
+            </div>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-7">
+              <FounderMarketplaceTrends trends={data.productTrends} error={data.productTrendsError} />
+            </div>
+            <div className="founder-col-5">
+              <FounderDemographics analytics={data.analytics} />
+            </div>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-4">
+              <FounderMarketplacePools />
+            </div>
+            <div className="founder-col-4">
+              <FounderRetention />
+            </div>
+            <div className="founder-col-4">
+              <FounderSecurityAlerts alerts={data.alerts} error={data.alertsError} />
+            </div>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-4">
+              <FounderDevicesAndPlatforms />
+            </div>
+            <div className="founder-col-4">
+              <FounderNotificationHealth />
+            </div>
+            <div className="founder-col-4">
+              <FounderSystemHealth version={data.version} />
+            </div>
+          </div>
+
+          <div className="founder-dashboard__row">
+            <div className="founder-col-6">
+              <FounderRecentErrors />
+            </div>
+            <div className="founder-col-6">
+              <FounderRecentReports health={health} />
+            </div>
+          </div>
+
           <div className="founder-dashboard__row">
             <div className="founder-col-8">
               <FounderCompanyPulse health={health} />
@@ -110,23 +215,9 @@ export function FounderOverview({
           </div>
 
           <div className="founder-dashboard__row">
-            <div className="founder-col-5">
-              <FounderProfileHealth health={health} />
-            </div>
-            <div className="founder-col-7">
-              <FounderMarketplacePulse health={health} />
-            </div>
-          </div>
-
-          <div className="founder-dashboard__row">
-            <div className={canAlerts ? "founder-col-7" : "founder-col-12"}>
+            <div className="founder-col-12">
               <FounderTrustSafety health={health} />
             </div>
-            {canAlerts ? (
-              <div className="founder-col-5">
-                <FounderSecurityAlerts alerts={data.alerts} error={data.alertsError} />
-              </div>
-            ) : null}
           </div>
 
           {data.brands ? (

@@ -40,19 +40,25 @@ export function BrandSelector() {
   }
 
   return (
-    <div className="hq-control" aria-label="Brand context">
-      <select
-        aria-label="Switch brand"
-        value={activeBrand ?? ""}
-        onChange={(event) => selectBrand(event.target.value)}
-      >
-        {brands.map((brand) => (
-          <option key={brand.slug} value={brand.slug}>
-            {brand.label}
-            {signedInBrands.includes(brand.slug) ? "" : " (sign in required)"}
-          </option>
-        ))}
-      </select>
+    <div className="hq-brand-pills" role="tablist" aria-label="Brand context">
+      {brands.map((brand) => {
+        const isActive = brand.slug === activeBrand;
+        const needsSignIn = !signedInBrands.includes(brand.slug);
+        return (
+          <button
+            key={brand.slug}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            className={`hq-brand-pill${isActive ? " is-active" : ""}`}
+            onClick={() => selectBrand(brand.slug)}
+            title={needsSignIn ? `${brand.label} — sign in required` : brand.label}
+          >
+            <span className="hq-brand-pill__label">{brand.label}</span>
+            {needsSignIn ? <span className="hq-brand-pill__flag" aria-hidden="true" /> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

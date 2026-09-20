@@ -444,6 +444,54 @@ body {
   color: var(--hq-text-faint);
 }
 
+.hq-brand-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hq-brand-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--hq-radius-sm);
+  border: 1px solid var(--hq-border-strong);
+  background: var(--hq-bg-elevated);
+  color: var(--hq-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.hq-brand-pill:hover {
+  background: var(--hq-bg-card-hover);
+  color: var(--hq-text);
+}
+
+.hq-brand-pill.is-active {
+  background: var(--hq-text);
+  border-color: var(--hq-text);
+  color: var(--hq-bg-card);
+}
+
+.hq-brand-pill__flag {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--hq-warning);
+}
+
+@media (max-width: 900px) {
+  .hq-brand-pills {
+    display: none;
+  }
+}
+
 .hq-operator {
   display: flex;
   align-items: center;
@@ -500,6 +548,65 @@ body {
   gap: 16px;
   min-width: 0;
 }
+
+.hq-analytics-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
+.hq-analytics-toolbar__field {
+  display: grid;
+  gap: 4px;
+  color: var(--hq-muted, #667085);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hq-analytics-toolbar select {
+  min-width: 140px;
+  border: 1px solid var(--hq-border, #d0d5dd);
+  border-radius: 8px;
+  background: var(--hq-surface, #fff);
+  color: inherit;
+  padding: 7px 10px;
+}
+
+.hq-analytics-panel {
+  margin-bottom: 16px;
+}
+
+.hq-analytics-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.hq-analytics-panel__definition {
+  color: var(--hq-muted, #667085);
+  font-size: 11px;
+  text-align: right;
+}
+
+.hq-registration-chart {
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.hq-registration-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  color: var(--hq-muted, #667085);
+  font-size: 12px;
+}
+
+.hq-registration-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.hq-registration-legend i { width: 8px; height: 8px; border-radius: 999px; }
+.hq-registration-legend__hint { margin-left: auto; font-style: italic; }
 
 /* —— Cards / primitives —— */
 .hq-card {
