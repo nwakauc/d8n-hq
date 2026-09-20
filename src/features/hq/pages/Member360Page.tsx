@@ -9,6 +9,7 @@ import {
   fetchHqMember360,
   fetchHqSecurityEvents,
   hqErrorMessage,
+  publishHqMemberProfile,
   restrictProfileDiscovery,
   restoreProfileDiscovery,
   recordTrustAdjustment,
@@ -188,6 +189,7 @@ export default function Member360Page() {
   const { operator } = useHqOperator();
   const canCorrectIdentity = canManageIdentityCorrections(operator);
   const canManageDiscovery = operatorHasCapability(operator, "admin.discovery_restrictions.manage");
+  const canManagePublication = operatorHasCapability(operator, "admin.profile_publication.manage");
   const canManageTrust = operatorHasCapability(operator, "admin.trust_adjustments.manage");
   const lookup = lookupParam ? decodeURIComponent(lookupParam) : "";
   const [load, setLoad] = useState<{ key: string; result: LoadResult | null }>({
@@ -536,6 +538,24 @@ export default function Member360Page() {
                     ) : (
                       <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => { const reason = window.prompt("Restriction reason"); if (reason?.trim()) void restrictProfileDiscovery(member.sections.profile.exists ? member.sections.profile.public_id : "", reason.trim()).then(reloadMember).catch((error) => window.alert(hqErrorMessage(error))); }}>Hide from discovery</button>
                     )}
+                  </div>
+                ) : null}
+                {canManagePublication && member.sections.profile.discovery_state !== "visible" && member.sections.profile.discovery_state !== "moderator_hidden" ? (
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+                    <span className="hq-card__subtitle">Publication: {member.sections.profile.discovery_state}</span>
+                    <button
+                      type="button"
+                      className="hq-btn hq-btn--ghost hq-btn--sm"
+                      onClick={() => {
+                        const reason = window.prompt("Publication reason (required and audited)");
+                        if (!reason?.trim()) return;
+                        void publishHqMemberProfile(member.sections.profile.exists ? member.sections.profile.public_id : "", reason)
+                          .then(reloadMember)
+                          .catch((error) => window.alert(hqErrorMessage(error)));
+                      }}
+                    >
+                      Make discoverable
+                    </button>
                   </div>
                 ) : null}
                 {member.sections.profile.configured_fields ? (

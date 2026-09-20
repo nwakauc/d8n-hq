@@ -4,7 +4,7 @@ export type PasswordAuthRequest = {
   identifier: string;
   password: string;
   device_name: string;
-  /** Always "token" in this app — see tokenStore.ts for why. */
+  /** HQ's persistent HttpOnly browser session mode. */
   session_mode: "hq_cookie";
 };
 

@@ -513,6 +513,7 @@ export type HqCapability =
   | "admin.realme_verifications.moderate"
   | "admin.identity_correction.manage"
   | "admin.discovery_restrictions.manage"
+  | "admin.profile_publication.manage"
   | "admin.trust_adjustments.manage"
   | "admin.trust_adjustments.reverse"
   | "admin.operators.read"

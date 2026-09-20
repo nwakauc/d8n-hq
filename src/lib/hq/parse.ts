@@ -969,6 +969,7 @@ const HQ_CAPABILITIES = new Set<string>([
   "admin.operators.read",
   "admin.operators.manage",
   "admin.brand_operations.manage",
+  "admin.profile_publication.manage",
   "hq.system.read",
   "hq.analytics.read",
   "hq.security_alerts.read",

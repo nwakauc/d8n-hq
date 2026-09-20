@@ -235,6 +235,14 @@ export async function fetchHqDiscoveryDiagnostic(lookup: string): Promise<HqDisc
   return parseDiscoveryDiagnostic(data);
 }
 
+export async function publishHqMemberProfile(lookup: string, reason: string): Promise<void> {
+  await apiRequest(memberPath(lookup, "/publication"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: reason.trim() }),
+  });
+}
+
 function appendQuery(base: string, params: URLSearchParams): string {
   const encoded = params.toString();
   return encoded ? `${base}?${encoded}` : base;
@@ -522,6 +530,15 @@ export function hqErrorMessage(error: unknown): string {
     if (error.code === "report_conflict") {
       return "Another moderator already resolved this report. Refresh and review the current status.";
     }
+    if (error.code === "enforced") {
+      return "This profile has an active enforcement and cannot be made discoverable from this control.";
+    }
+    if (error.code === "discovery_restricted") {
+      return "This profile has an explicit discovery restriction. Resolve that restriction first.";
+    }
+    if (error.code === "already_visible") {
+      return "This profile is already visible. Refresh Member 360 for the current state.";
+    }
     return "This action conflicts with the current state. Refresh and try again.";
   }
   if (error.status === 422) {
@@ -542,6 +559,12 @@ export function hqErrorMessage(error: unknown): string {
     }
     if (error.code === "invalid_transition") {
       return "That status change is not allowed from the report's current state.";
+    }
+    if (error.code === "profile_incomplete") {
+      return "This profile is still incomplete under the current brand publication requirements.";
+    }
+    if (error.code === "invalid_reason") {
+      return "A publication reason is required and must be 500 characters or fewer.";
     }
     return "The request was rejected. Check the lookup or paging parameters.";
   }

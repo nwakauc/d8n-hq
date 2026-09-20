@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!activeBrand || hasHqSession(activeBrand)) return;
     void restoreHqSession(activeBrand)
       .then((session) => {
-        markHqSession(activeBrand, session.csrf_token);
+        markHqSession(activeBrand, session?.csrf_token);
         setVersion((v) => v + 1);
       })
       .catch(() => undefined)

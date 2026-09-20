@@ -1,16 +1,9 @@
 /**
  * In-memory HQ session metadata, one marker/CSRF token per API host.
  *
- * D8N issues Bearer sessions (OpenAPI securitySchemes.bearerAuth) as an
- * alternative to its HttpOnly-cookie browser session mode; this app always
- * requests `session_mode: "token"` (see lib/api/auth.ts) specifically so it
- * never depends on cookies — a session established while signed in on
- * DateZA's host must not silently try to ride along to Date9ja's host, and
- * D8N's own session model would reject that anyway (`Session belongs_to
- * :brand`; `Identity::SessionAuthenticator` hard-fails `wrong_brand` if the
- * token's brand doesn't match the request's Host-resolved brand — see
- * ~/pro/dateza/HQ-STANDALONE-PLAN.md). One token per brand, kept separately,
- * is the correct shape for that constraint, not a workaround for it.
+ * HQ uses a brand-pinned HttpOnly cookie session. The browser keeps only a
+ * non-secret marker and CSRF token in memory; reloads recover both from the
+ * server bootstrap endpoint when it returns session metadata.
  *
  * The actual operator credential is an HttpOnly cookie. This module deliberately
  * retains only the non-secret session marker and CSRF token in memory; reloads

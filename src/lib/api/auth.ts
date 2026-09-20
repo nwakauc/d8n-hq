@@ -87,8 +87,11 @@ export function revokeCurrentSession(brandSlug: string): Promise<void> {
   );
 }
 
-export function restoreHqSession(brandSlug: string): Promise<{ expires_at: string; csrf_token: string }> {
+export function restoreHqSession(brandSlug: string): Promise<{ expires_at: string; csrf_token: string } | undefined> {
   return apiRequest("/api/v1/hq/auth/session", { method: "GET" }, { brand: brandSlug }).then((data) => {
+    // A deployed session probe may use 204 as a successful existence check.
+    // apiRequest returns undefined for an empty 2xx body; preserve that success.
+    if (data === undefined) return undefined;
     if (typeof data !== "object" || data === null || !("session" in data)) throw new ApiError(502, undefined, "invalid_auth_response");
     const session = (data as { session: { expires_at?: unknown; csrf_token?: unknown } }).session;
     if (typeof session.expires_at !== "string" || typeof session.csrf_token !== "string") throw new ApiError(502, undefined, "invalid_auth_response");

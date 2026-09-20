@@ -284,6 +284,45 @@ describe("D8N HQ Phase 1 integration", () => {
     ).toBeInTheDocument();
   });
 
+  it("completes login, session establishment, operator bootstrap, and HQ load", async () => {
+    const user = userEvent.setup();
+    setBrandToken("dateza", undefined);
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = urlOf(input);
+      if (url.includes("/api/v1/hq/auth/login")) {
+        return json(201, {
+          session: { expires_at: "2099-01-01T00:00:00Z", csrf_token: "csrf-token" },
+          operator: { user_id: 1, admin_user_id: 10, brand: "dateza" },
+        });
+      }
+      return withOperator(() => undefined)(input);
+    });
+
+    renderAt("/sign-in");
+    await user.type(screen.getByLabelText("Email or phone"), "founder@example.com");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: /sign in to dateza/i }));
+
+    expect(await screen.findByRole("heading", { name: "Command Centre" })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/hq/auth/login"),
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("retains an existing cookie session when the restore probe returns 204", async () => {
+    setBrandToken("dateza", undefined);
+    window.localStorage.setItem("hq:active-brand:v1", "dateza");
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = urlOf(input);
+      if (url.includes("/api/v1/hq/auth/session")) return Promise.resolve(new Response(null, { status: 204 }));
+      return withOperator(() => undefined)(input);
+    });
+
+    renderAt("/hq");
+    expect(await screen.findByRole("heading", { name: "Command Centre" })).toBeInTheDocument();
+  });
+
   it("blocks signed-in non-operators from /hq", async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = urlOf(input);

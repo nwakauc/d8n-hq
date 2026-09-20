@@ -5,9 +5,44 @@ import {
   parseDiscoveryDiagnostic,
   parseIdentityCorrectionResponse,
   parseMember360,
+  parseCurrentOperatorResponse,
   parseRealmeModerationResult,
   parseRealmeQueue,
 } from "./parse.ts";
+
+describe("parseCurrentOperatorResponse", () => {
+  it("accepts the production founder operator contract", () => {
+    const response = parseCurrentOperatorResponse({
+      operator: {
+        admin_user_id: 10,
+        user_id: 1,
+        status: "active",
+        current_brand: "dateza",
+        role: "founder",
+        effective_capabilities: [
+          "hq.member.sensitive_read",
+          "admin.profile_publication.manage",
+          "hq.system.read",
+        ],
+        grantable_roles: ["moderator"],
+        brand_assignments: [{
+          brand: "dateza",
+          role: "founder",
+          effective_capabilities: ["admin.profile_publication.manage"],
+        }],
+        mfa: {
+          state: "active",
+          required: true,
+          verified: true,
+          recovery_codes_remaining: 8,
+        },
+      },
+    });
+
+    expect(response.operator.role).toBe("founder");
+    expect(response.operator.effective_capabilities).toContain("admin.profile_publication.manage");
+  });
+});
 
 const member360Fixture = {
   member: {
