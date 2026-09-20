@@ -10,6 +10,12 @@ import type {
   HqCommandCentreBrandEntry,
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
+  HqRegistrationTrendBrand,
+  HqRegistrationTrendResponse,
+  HqProductFunnel,
+  HqProductFunnelStage,
+  HqProductTrendSeries,
+  HqProductTrends,
   HqMetricStatus,
   HqMetricUnit,
   HqMetricValue,
@@ -1501,6 +1507,7 @@ function parseCommandCentreHealthPayload(health: Record<string, unknown>): HqCom
     },
     activity: {
       active_users: parseWindowedMetrics(activity.active_users, "active_users"),
+      online_now: parseMetricValue(activity.online_now),
     },
     profile_health: {
       by_status: parseMetricValue(profileHealth.by_status),
@@ -1563,5 +1570,109 @@ export function parseCommandCentreBrands(data: unknown): HqCommandCentreBrandsRe
     generated_at: requireString(root.generated_at, "brands_generated_at"),
     time_zone: "Africa/Johannesburg",
     brands: root.brands.map(parseCommandCentreBrandEntry),
+  };
+}
+
+function parseRegistrationTrendBrand(value: unknown): HqRegistrationTrendBrand {
+  const row = requireRecord(value, "registration_trend_brand");
+  if (row.status !== "available") {
+    throw new ApiError(502, undefined, "invalid_hq_registration_trend_status");
+  }
+  return {
+    brand: requireString(row.brand, "registration_trend_brand_name"),
+    status: "available",
+    total: requireNumber(row.total, "registration_trend_total"),
+    points: parseCountMap(row.points, "registration_trend_points"),
+  };
+}
+
+export function parseRegistrationTrendResponse(data: unknown): HqRegistrationTrendResponse {
+  const root = requireRecord(data, "registration_trends_response");
+  if (root.time_zone !== "Africa/Johannesburg") {
+    throw new ApiError(502, undefined, "invalid_hq_time_zone");
+  }
+  if (!Array.isArray(root.brands)) {
+    throw new ApiError(502, undefined, "invalid_hq_registration_trends");
+  }
+  return {
+    generated_at: requireString(root.generated_at, "registration_trends_generated_at"),
+    time_zone: "Africa/Johannesburg",
+    window: requireString(root.window, "registration_trends_window"),
+    definition: requireString(root.definition, "registration_trends_definition"),
+    brands: root.brands.map(parseRegistrationTrendBrand),
+  };
+}
+
+function parseProductFunnelStage(value: unknown): HqProductFunnelStage {
+  const row = requireRecord(value, "product_funnel_stage");
+  const status = parseMetricStatus(row.status);
+  if (row.unit !== "members") {
+    throw new ApiError(502, undefined, "invalid_hq_product_funnel_unit");
+  }
+  const numberOrNull = (entry: unknown, label: string): number | null => {
+    if (entry === null || entry === undefined) return null;
+    return requireNumber(entry, label);
+  };
+  const stage: HqProductFunnelStage = {
+    id: requireString(row.id, "product_funnel_stage_id"),
+    definition: requireString(row.definition, "product_funnel_stage_definition"),
+    status,
+    unit: "members",
+    conversion_from_previous: numberOrNull(row.conversion_from_previous, "product_funnel_previous_conversion"),
+    conversion_from_registration: numberOrNull(row.conversion_from_registration, "product_funnel_registration_conversion"),
+    limitations: Array.isArray(row.limitations)
+      ? row.limitations.map((entry, index) => requireString(entry, `product_funnel_limitation_${index}`))
+      : [],
+  };
+  if (status === "available") {
+    stage.value = requireNumber(row.value, "product_funnel_stage_value");
+  }
+  return stage;
+}
+
+export function parseProductFunnel(data: unknown): HqProductFunnel {
+  const root = requireRecord(data, "product_funnel_response");
+  const funnel = requireRecord(root.funnel, "product_funnel");
+  if (funnel.time_zone !== "Africa/Johannesburg" || !Array.isArray(funnel.stages)) {
+    throw new ApiError(502, undefined, "invalid_hq_product_funnel");
+  }
+  return {
+    brand: requireString(funnel.brand, "product_funnel_brand"),
+    window: requireString(funnel.window, "product_funnel_window"),
+    generated_at: requireString(funnel.generated_at, "product_funnel_generated_at"),
+    time_zone: "Africa/Johannesburg",
+    stages: funnel.stages.map(parseProductFunnelStage),
+  };
+}
+
+function parseProductTrendSeries(value: unknown): HqProductTrendSeries {
+  const row = requireRecord(value, "product_trend_series");
+  if (row.status !== "available" || row.unit !== "count") {
+    throw new ApiError(502, undefined, "invalid_hq_product_trend_series");
+  }
+  return {
+    id: requireString(row.id, "product_trend_series_id"),
+    definition: requireString(row.definition, "product_trend_series_definition"),
+    status: "available",
+    unit: "count",
+    limitations: Array.isArray(row.limitations)
+      ? row.limitations.map((entry, index) => requireString(entry, `product_trend_limitation_${index}`))
+      : [],
+    points: parseCountMap(row.points, "product_trend_points"),
+  };
+}
+
+export function parseProductTrends(data: unknown): HqProductTrends {
+  const root = requireRecord(data, "product_trends_response");
+  const trends = requireRecord(root.trends, "product_trends");
+  if (trends.time_zone !== "Africa/Johannesburg" || !Array.isArray(trends.series)) {
+    throw new ApiError(502, undefined, "invalid_hq_product_trends");
+  }
+  return {
+    brand: requireString(trends.brand, "product_trends_brand"),
+    window: requireString(trends.window, "product_trends_window"),
+    generated_at: requireString(trends.generated_at, "product_trends_generated_at"),
+    time_zone: "Africa/Johannesburg",
+    series: trends.series.map(parseProductTrendSeries),
   };
 }

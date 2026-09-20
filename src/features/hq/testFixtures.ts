@@ -179,6 +179,11 @@ export function commandCentreHealthFixture(overrides: Record<string, unknown> = 
         "Distinct users with a Session last_used_at in the window for the brand.",
         { today: 8, last_7d: 120, last_30d: 400 },
       ),
+      online_now: metricAvailable(
+        "activity.online_now",
+        "Distinct users with a non-revoked, unexpired Session whose last_used_at is within the last 30 minutes for the brand.",
+        6,
+      ),
     },
     profile_health: {
       by_status: metricAvailable(
@@ -306,11 +311,96 @@ export function commandCentreBrandsOk(
 }
 
 export function commandCentreRouteOk(url: string) {
+  if (url.includes("/api/v1/hq/analytics/overview")) {
+    return json(200, {
+      overview: {
+        brand: "dateza",
+        generated_at: "2026-08-30T12:00:00Z",
+        time_zone: "Africa/Johannesburg",
+        signups_today: 3,
+        signups_this_week: 12,
+        signups_this_month: 45,
+        active_today: 8,
+        active_7d: 120,
+        active_30d: 400,
+        gender_split: { woman: 220, man: 250, other: 10, unknown: 20 },
+        total_registered_members: 500,
+      },
+    });
+  }
   if (url.includes("/api/v1/hq/command_centre/health")) {
     return commandCentreHealthOk();
   }
   if (url.includes("/api/v1/hq/command_centre/brands")) {
     return commandCentreBrandsOk();
+  }
+  if (url.includes("/api/v1/hq/command_centre/registration_trends")) {
+    return json(200, {
+      generated_at: "2026-08-30T12:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      window: "last_30d",
+      definition: "Kept brand memberships created on each brand-local calendar date.",
+      brands: [
+        { brand: "dateza", status: "available", total: 3, points: { "2026-08-29": 2, "2026-08-30": 1 } },
+        { brand: "otherbrand", status: "available", total: 1, points: { "2026-08-30": 1 } },
+      ],
+    });
+  }
+  if (url.includes("/api/v1/hq/product_intelligence/funnel")) {
+    return json(200, {
+      funnel: {
+        brand: "dateza",
+        window: "last_30d",
+        generated_at: "2026-08-30T12:00:00Z",
+        time_zone: "Africa/Johannesburg",
+        stages: [
+          {
+            id: "registered",
+            definition: "Kept brand memberships created in the cohort window.",
+            status: "available",
+            unit: "members",
+            value: 45,
+            conversion_from_previous: null,
+            conversion_from_registration: 1,
+            limitations: [],
+          },
+          {
+            id: "onboarding_completed",
+            definition: "No authoritative onboarding-completed timestamp is persisted yet.",
+            status: "unavailable",
+            unit: "members",
+            conversion_from_previous: null,
+            conversion_from_registration: null,
+            limitations: ["No authoritative onboarding-completed timestamp is persisted yet."],
+          },
+          {
+            id: "profile_published",
+            definition: "Members in the registration cohort with a profile.published event in the cohort window.",
+            status: "available",
+            unit: "members",
+            value: 12,
+            conversion_from_previous: 0.2667,
+            conversion_from_registration: 0.2667,
+            limitations: [],
+          },
+        ],
+      },
+    });
+  }
+  if (url.includes("/api/v1/hq/product_intelligence/trends")) {
+    return json(200, {
+      trends: {
+        brand: "dateza",
+        window: "last_30d",
+        generated_at: "2026-08-30T12:00:00Z",
+        time_zone: "Africa/Johannesburg",
+        series: [
+          { id: "likes", definition: "Kept Like rows created on each brand-local calendar date.", status: "available", unit: "count", limitations: [], points: { "2026-08-29": 4, "2026-08-30": 7 } },
+          { id: "matches", definition: "Kept Match rows created on each brand-local calendar date.", status: "available", unit: "count", limitations: [], points: { "2026-08-29": 1, "2026-08-30": 2 } },
+          { id: "conversations", definition: "Kept Conversation rows created on each brand-local calendar date.", status: "available", unit: "count", limitations: [], points: { "2026-08-29": 1, "2026-08-30": 1 } },
+        ],
+      },
+    });
   }
   return undefined;
 }

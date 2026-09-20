@@ -5,14 +5,19 @@ import { memberActiveWindowPath, memberCreatedWindowPath } from "../analytics/an
 import { FounderIcon, type FounderIconName } from "./founderIcons.tsx";
 import { FounderMetricInfo, FounderMetricValue } from "./FounderMetricInfo.tsx";
 
-const ONLINE_NOW_UNAVAILABLE: HqMetricValue = {
-  metric_id: "presence.online_now",
-  version: 1,
-  definition: "Members with a current canonical presence signal.",
-  status: "unavailable",
-  unit: "count",
-  limitations: ["D8N does not yet expose a canonical presence window."],
-};
+const ONLINE_NOW_WINDOW_MS = 30 * 60 * 1000;
+
+/** online_now has no windows[] entry from the backend (it's a fixed 30-minute
+ * lookback from generated_at, not one of the standard today/7d/30d windows),
+ * so build its member-directory link client-side from generated_at instead. */
+function onlineNowWindowPath(health: HqCommandCentreHealth): string | null {
+  const generatedAt = new Date(health.generated_at);
+  if (Number.isNaN(generatedAt.getTime())) return null;
+  return memberActiveWindowPath({
+    start_at: new Date(generatedAt.getTime() - ONLINE_NOW_WINDOW_MS).toISOString(),
+    end_at: generatedAt.toISOString(),
+  });
+}
 
 const DELETIONS_UNAVAILABLE: HqMetricValue = {
   metric_id: "memberships.deleted",
@@ -61,10 +66,10 @@ const HERO_SPECS = [
     label: "Online now",
     icon: "activity" as FounderIconName,
     tone: "green" as const,
-    pick: () => ONLINE_NOW_UNAVAILABLE,
-    context: () => "Presence signal required",
+    pick: (health: HqCommandCentreHealth) => health.activity.online_now,
+    context: () => "Active in the last 30 min",
     windowKey: null as string | null,
-    to: () => null,
+    to: (health: HqCommandCentreHealth) => onlineNowWindowPath(health),
   },
   {
     key: "likes",

@@ -173,29 +173,27 @@ For list/table panels (Recent Errors, Recent Reports, Deletions), a
   win — day/brand counts need no migration) and ship reason breakdown
   as a fast-follow once brand apps collect it.
 
-### 8. Online Now / presence
+### 8. Online Now / presence — DONE (Option A), 2026-09-20
 
 - **Powers:** Command Centre hero KPI "Online now."
-- **Current state:** no canonical presence signal.
-  `Session#last_used_at` (`db/schema.rb:1409`) updates on authenticated
-  request activity — a reasonable **approximation** of presence, not a
-  real-time signal. `domains/realtime/member_events.rb` uses
-  ActionCable for event broadcast but there's no presence channel
-  tracking active socket connections.
-- **Two options, pick one deliberately (don't half-do both):**
-  - **Option A — cheap, approximate (recommend shipping first):** new
-    metric `presence.online_now` = distinct users with
-    `Session.active` and `last_used_at` within e.g. the last 5 minutes,
-    per brand. Ships in the same PR as item 4 (Retention), reuses the
-    same `Session` queries. Must carry an explicit `limitations`
-    string ("derived from request activity, not a live connection — a
-    5 min idle window") so HQ doesn't imply more precision than it has.
-  - **Option B — accurate:** an ActionCable presence channel (Redis-
-    backed) that brand frontends connect to while foregrounded, giving
-    true online/offline. Real product work on every brand frontend,
-    not just backend — scope this only if Option A proves insufficient.
-- **Effort:** Option A = S (half day, bundle with item 4). Option B = L
-  (multi-day, cross-repo).
+- **Shipped:** `Hq::Metrics::Catalog` gained `"activity.online_now"`;
+  `Hq::Metrics::Compute#activity_section` now also returns `online_now`
+  — distinct users per brand with `Session.active` (non-revoked,
+  unexpired) and `last_used_at` within the last 30 minutes
+  (`ONLINE_NOW_WINDOW = 30.minutes`, `domains/hq/metrics/compute.rb`).
+  Carries a `limitations` string making clear this is request-activity
+  derived, not a live connection. Flows through the existing
+  `GET /api/v1/hq/command_centre/health` response under
+  `activity.online_now` — no controller/route change needed. Covered by
+  `test/domains/hq/metrics/compute_test.rb` (`online_now counts
+  sessions active within the last 30 minutes only`). Frontend wired in
+  `d8n-hq` (hero tile now links to Members filtered to that window).
+- **Not done — Option B (accurate):** an ActionCable presence channel
+  (Redis-backed) that brand frontends connect to while foregrounded,
+  giving true online/offline instead of a 30-minute activity proxy.
+  Real product work on every brand frontend, not just backend — only
+  worth doing if the 30-minute approximation proves insufficient.
+- **Effort remaining:** Option B = L (multi-day, cross-repo).
 
 ### 9. Recent Errors
 

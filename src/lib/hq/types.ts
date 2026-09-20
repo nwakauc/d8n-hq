@@ -752,6 +752,7 @@ export type HqCommandCentreHealth = {
   };
   activity: {
     active_users: Record<string, HqMetricValue>;
+    online_now: HqMetricValue;
   };
   profile_health: {
     by_status: HqMetricValue;
@@ -798,4 +799,56 @@ export type HqCommandCentreBrandsResponse = {
   generated_at: string;
   time_zone: "Africa/Johannesburg";
   brands: HqCommandCentreBrandEntry[];
+};
+
+export type HqRegistrationTrendBrand = {
+  brand: string;
+  status: "available";
+  total: number;
+  points: Record<string, number>;
+};
+
+export type HqRegistrationTrendResponse = {
+  generated_at: string;
+  time_zone: "Africa/Johannesburg";
+  window: string;
+  definition: string;
+  brands: HqRegistrationTrendBrand[];
+};
+
+/** Bounded, brand-scoped activation funnel from product-intelligence. */
+export type HqProductFunnelStage = {
+  id: string;
+  definition: string;
+  status: HqMetricStatus;
+  unit: "members";
+  value?: number;
+  conversion_from_previous: number | null;
+  conversion_from_registration: number | null;
+  limitations: string[];
+};
+
+export type HqProductFunnel = {
+  brand: string;
+  window: string;
+  generated_at: string;
+  time_zone: "Africa/Johannesburg";
+  stages: HqProductFunnelStage[];
+};
+
+export type HqProductTrendSeries = {
+  id: string;
+  definition: string;
+  status: "available";
+  unit: "count";
+  limitations: string[];
+  points: Record<string, number>;
+};
+
+export type HqProductTrends = {
+  brand: string;
+  window: string;
+  generated_at: string;
+  time_zone: "Africa/Johannesburg";
+  series: HqProductTrendSeries[];
 };
