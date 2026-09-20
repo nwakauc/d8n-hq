@@ -63,19 +63,6 @@ export function BrandSelector() {
   );
 }
 
-export function DateRangeSelector() {
-  return (
-    <div
-      className="hq-control hq-control--muted"
-      title="Date range applies once metric backends exist"
-      aria-disabled="true"
-    >
-      Date range · Last 7 days
-      <span className="hq-nav-link__meta">Soon</span>
-    </div>
-  );
-}
-
 export function GlobalSearchTrigger({ onOpen }: { onOpen: () => void }) {
   return (
     <button type="button" className="hq-control hq-control--button" onClick={onOpen}>
@@ -203,7 +190,6 @@ export function HqHeader({
         <FounderModeToggle compact />
         <HqSiteLink variant="header" />
         <BrandSelector />
-        <DateRangeSelector />
         <GlobalSearchTrigger onOpen={onOpenSearch} />
         <OperatorIdentity />
       </div>

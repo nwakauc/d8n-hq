@@ -551,14 +551,10 @@ body {
 
 .hq-analytics-toolbar {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
   margin: 0 0 16px;
-}
-
-.hq-analytics-toolbar__field {
-  display: grid;
-  gap: 4px;
   color: var(--hq-muted, #667085);
   font-size: 12px;
   font-weight: 600;

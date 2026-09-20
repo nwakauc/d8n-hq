@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useHqBrand } from "../useHqBrand.ts";
 import { AnalyticsToolbar } from "../analytics/AnalyticsToolbar.tsx";
-import type { HqAnalyticsRange, HqBrandScope } from "../analytics/analyticsTypes.ts";
+import type { HqAnalyticsRange } from "../analytics/analyticsTypes.ts";
 import { founderGreeting } from "../commandCentreMetric.ts";
 import type { CommandCentreData, CommandCentreLoadState } from "../hooks/useCommandCentreData.ts";
 import { formatRelativeTime } from "./formatRelativeTime.ts";
@@ -36,10 +36,7 @@ export function FounderOverview({
   partialErrors,
   canAnalytics,
   onRefresh,
-  scope,
   timeRange,
-  brands,
-  onScopeChange,
   onTimeRangeChange,
 }: {
   load: CommandCentreLoadState;
@@ -47,10 +44,7 @@ export function FounderOverview({
   partialErrors: string[];
   canAnalytics: boolean;
   onRefresh: () => void;
-  scope: string;
   timeRange: HqAnalyticsRange;
-  brands: string[];
-  onScopeChange: (scope: HqBrandScope) => void;
   onTimeRangeChange: (range: HqAnalyticsRange) => void;
 }) {
   const { brandName } = useHqBrand();
@@ -77,6 +71,7 @@ export function FounderOverview({
           </p>
         </div>
         <div className="founder-intro__actions">
+          <AnalyticsToolbar range={timeRange} onRangeChange={onTimeRangeChange} />
           <button type="button" className="founder-refresh" onClick={onRefresh}>
             Refresh
           </button>
@@ -120,20 +115,9 @@ export function FounderOverview({
             </div>
           </div>
 
-          <div className="founder-context-bar">
-            <AnalyticsToolbar
-              scope={scope}
-              range={timeRange}
-              brands={brands}
-              onScopeChange={onScopeChange}
-              onRangeChange={onTimeRangeChange}
-            />
-            <span className="founder-context-bar__hint">All dashboard figures use the selected scope and period where supported.</span>
-          </div>
-
           <div className="founder-dashboard__row">
             <div className="founder-col-4">
-              <DailyRegistrationsPanel data={data.registrations} scope={scope} loading={false} />
+              <DailyRegistrationsPanel data={data.registrations} loading={false} />
             </div>
             <div className="founder-col-3">
               <FounderActiveUsers analytics={data.analytics} />

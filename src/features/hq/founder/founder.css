@@ -494,42 +494,32 @@
   gap: 12px;
 }
 
-.founder-context-bar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 2px 2px 0;
-}
-
-.founder-context-bar .hq-analytics-toolbar {
+/* The one working date-range control lives in the greeting row, next to
+ * Refresh — brand is chosen once, in the header pills, so there is no
+ * second scope/brand field here. */
+.founder-intro__actions .hq-analytics-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  gap: 8px;
-}
-
-.founder-context-bar .hq-analytics-toolbar__field {
-  gap: 3px;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  color: var(--founder-text-muted);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.founder-context-bar .hq-analytics-toolbar select {
-  min-width: 132px;
-  border-color: var(--founder-border);
-  border-radius: 7px;
+.founder-intro__actions .hq-analytics-toolbar select {
+  border: 1px solid var(--founder-border);
+  border-radius: 999px;
+  padding: 7px 12px;
   background: var(--founder-surface);
   color: var(--founder-text);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.founder-context-bar__hint {
-  max-width: 360px;
-  padding-bottom: 7px;
-  color: var(--founder-text-faint);
-  font-size: 11px;
-  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
 }
 
 .founder-dashboard__row {
@@ -1664,12 +1654,9 @@
     grid-template-columns: 1fr;
   }
 
-  .founder-context-bar {
-    align-items: flex-start;
-    flex-direction: column;
+  .founder-intro__actions {
+    flex-wrap: wrap;
   }
-
-  .founder-context-bar__hint { text-align: left; }
 }
 
 @media (max-width: 480px) {

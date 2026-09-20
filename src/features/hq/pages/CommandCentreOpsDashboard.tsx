@@ -19,6 +19,7 @@ import {
   UnavailableState,
 } from "../components/HqPrimitives.tsx";
 import type { CommandCentreData, CommandCentreLoadState } from "../hooks/useCommandCentreData.ts";
+import { DailyRegistrationsPanel } from "../analytics/DailyRegistrationsPanel.tsx";
 
 const SCORE_LABELS = ["Growth", "Product", "Revenue", "Customer", "Safety", "System"] as const;
 const PRIMARY_WINDOWS = ["today", "last_7d", "last_30d"] as const;
@@ -191,6 +192,7 @@ export function CommandCentreOpsDashboard({
   return (
     <div className="hq-content hq-content--with-rail">
       <div className="hq-content__primary">
+        <DailyRegistrationsPanel data={data.registrations} loading={load === "loading"} />
         <div className="hq-ops-mode-bar">
           <StatusBadge tone="neutral">Ops mode</StatusBadge>
         </div>
