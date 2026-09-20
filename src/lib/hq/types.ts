@@ -252,6 +252,13 @@ export type HqAccountClosure = {
   created_at: string;
 };
 
+export type HqDiscoveryRestriction = {
+  restricted_at: string;
+  reason: string | null;
+  note: string | null;
+  restricted_by_admin_user_id: number | null;
+};
+
 export type HqSafetySection = {
   trust_score?: number;
   trust_breakdown?: { kind: string; type: string; label: string; points: number; applies: boolean; occurred_at: string }[];
@@ -261,6 +268,7 @@ export type HqSafetySection = {
   recent_reports: HqRecentReport[];
   active_enforcement: HqAdminEnforcement | null;
   enforcement_count: number;
+  discovery_restriction: HqDiscoveryRestriction | null;
   account_closure: HqAccountClosure | null;
 };
 

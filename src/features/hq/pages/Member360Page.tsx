@@ -7,6 +7,7 @@ import {
   fetchHqDiscoveryDiagnostic,
   fetchHqEnforcements,
   fetchHqMember360,
+  fetchHqMemberTimeline,
   fetchHqSecurityEvents,
   hqErrorMessage,
   publishHqMemberProfile,
@@ -17,7 +18,7 @@ import {
 import { canManageIdentityCorrections } from "../../../lib/hq/enforcementAccess.ts";
 import { operatorHasCapability } from "../../../lib/hq/capabilities.ts";
 import { displayNameForMember } from "../../../lib/hq/parse.ts";
-import type { HqDiscoveryDiagnostic, HqMember360 } from "../../../lib/hq/types.ts";
+import type { HqDiscoveryDiagnostic, HqMember360, HqTimelineEvent } from "../../../lib/hq/types.ts";
 import { useHqBrand } from "../useHqBrand.ts";
 import { useHqOperator } from "../useHqOperator.ts";
 import { HqHistoryPanel } from "../components/HqHistoryPanel.tsx";
@@ -135,6 +136,7 @@ function LookingForEditor({ profileId, currentValues, onCorrected }: { profileId
 }
 
 const SECTION_KEYS = [
+  "overview",
   "identity",
   "profile",
   "product",
@@ -145,17 +147,18 @@ const SECTION_KEYS = [
 
 type SectionKey = (typeof SECTION_KEYS)[number];
 
+/** One section open at a time (a tab, not a freely-stackable accordion) --
+ * the old default opened three sections simultaneously, which is exactly
+ * the "too much at once" clutter this page needs to stop doing. */
 function parseOpenSections(raw: string | null): Set<SectionKey> {
   if (!raw) {
-    return new Set(["identity", "profile", "product"]);
+    return new Set(["overview"]);
   }
-  const next = new Set<SectionKey>();
-  for (const part of raw.split(",")) {
-    if ((SECTION_KEYS as readonly string[]).includes(part)) {
-      next.add(part as SectionKey);
-    }
+  const first = raw.split(",")[0];
+  if ((SECTION_KEYS as readonly string[]).includes(first)) {
+    return new Set([first as SectionKey]);
   }
-  return next.size > 0 ? next : new Set(["identity"]);
+  return new Set(["overview"]);
 }
 
 type LoadResult =
@@ -215,15 +218,9 @@ export default function Member360Page() {
   );
   const historyTab = searchParams.get("history"); // security | auth | enforcements
 
-  function toggleSection(key: SectionKey) {
-    const next = new Set(openSections);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
+  function selectSection(key: SectionKey) {
     const params = new URLSearchParams(searchParams);
-    params.set("sections", Array.from(next).join(","));
+    params.set("sections", key);
     setSearchParams(params, { replace: true });
   }
 
@@ -342,6 +339,31 @@ export default function Member360Page() {
     setDiagnostic({ key: "", result: null });
     setDiagNonce((value) => value + 1);
   }
+
+  const activityOpen = Boolean(member && openSections.has("activity"));
+  const [timeline, setTimeline] = useState<{
+    key: string;
+    result: { status: "ready"; events: HqTimelineEvent[] } | { status: "error"; message: string } | null;
+  }>({ key: "", result: null });
+  const timelineStatus =
+    !activityOpen ? "idle" : timeline.key !== lookup || timeline.result === null ? "loading" : timeline.result.status;
+
+  useEffect(() => {
+    if (!activityOpen || !lookup) {
+      return;
+    }
+    let cancelled = false;
+    void fetchHqMemberTimeline(lookup)
+      .then((events) => {
+        if (!cancelled) setTimeline({ key: lookup, result: { status: "ready", events } });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setTimeline({ key: lookup, result: { status: "error", message: hqErrorMessage(error) } });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activityOpen, lookup]);
   const loadSecurityPage = useCallback(
     async (cursor: string | null) => {
       const page = await fetchHqSecurityEvents(lookup, { cursor, limit: 25 });
@@ -416,11 +438,75 @@ export default function Member360Page() {
           </div>
 
           <CollapsibleSection
+            id="hq-overview"
+            title="Overview"
+            badge={<StatusBadge tone="success">Ready</StatusBadge>}
+            open={openSections.has("overview")}
+            onToggle={() => selectSection("overview")}
+          >
+            <StatGroup
+              items={[
+                { label: "Account type", value: member.sections.identity.account_type.label },
+                { label: "Membership", value: member.sections.identity.membership_status },
+                { label: "User status", value: member.sections.identity.user_status },
+                {
+                  label: "Profile",
+                  value: member.sections.profile.exists
+                    ? `${member.sections.profile.status} · ${member.sections.profile.visibility}`
+                    : "No profile",
+                },
+                {
+                  label: "Onboarding",
+                  value: member.sections.profile.exists
+                    ? `${member.sections.profile.onboarding_state} (${member.sections.profile.onboarding_completion_percent}%)`
+                    : "—",
+                },
+                {
+                  label: "Discovery",
+                  value: member.sections.profile.exists ? member.sections.profile.discovery_state : "—",
+                },
+                { label: "Trust Score", value: member.sections.safety.trust_score ?? "—" },
+                {
+                  label: "RealMe",
+                  value:
+                    !member.sections.safety.realme || member.sections.safety.realme.length === 0
+                      ? "Not started"
+                      : `${member.sections.safety.realme.length} check${member.sections.safety.realme.length === 1 ? "" : "s"} · ${[...new Set(member.sections.safety.realme.map((entry) => entry.status))].join(", ")}`,
+                },
+                {
+                  label: "Enforcement",
+                  value: member.sections.safety.active_enforcement
+                    ? `${member.sections.safety.active_enforcement.kind} · ${member.sections.safety.active_enforcement.state}`
+                    : "None active",
+                },
+                { label: "Reports received", value: member.sections.safety.reports_received_count },
+                { label: "Likes given / received", value: `${member.sections.product.likes_given} / ${member.sections.product.likes_received}` },
+                { label: "Active matches", value: member.sections.product.matches_active },
+                { label: "Conversations", value: member.sections.product.conversations_count },
+              ]}
+            />
+            <div className="hq-directory__badges" style={{ marginTop: 12 }}>
+              <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => selectSection("profile")}>
+                Profile →
+              </button>
+              <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => selectSection("product")}>
+                Marketplace →
+              </button>
+              <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => selectSection("safety")}>
+                Safety →
+              </button>
+              <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => selectSection("activity")}>
+                Activity →
+              </button>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
             id="hq-identity"
             title="Identity"
             badge={<StatusBadge tone="success">Ready</StatusBadge>}
             open={openSections.has("identity")}
-            onToggle={() => toggleSection("identity")}
+            onToggle={() => selectSection("identity")}
           >
             <StatGroup
               items={[
@@ -479,7 +565,7 @@ export default function Member360Page() {
               )
             }
             open={openSections.has("profile")}
-            onToggle={() => toggleSection("profile")}
+            onToggle={() => selectSection("profile")}
           >
             {!member.sections.profile.exists ? (
               <UnavailableState
@@ -650,10 +736,10 @@ export default function Member360Page() {
 
           <CollapsibleSection
             id="hq-product"
-            title="Product"
+            title="Marketplace"
             badge={<StatusBadge tone="success">Ready</StatusBadge>}
             open={openSections.has("product")}
-            onToggle={() => toggleSection("product")}
+            onToggle={() => selectSection("product")}
           >
             <StatGroup
               items={[
@@ -735,10 +821,10 @@ export default function Member360Page() {
 
           <CollapsibleSection
             id="hq-comms"
-            title="Communications"
+            title="Support"
             badge={<StatusBadge tone="success">Ready</StatusBadge>}
             open={openSections.has("comms")}
-            onToggle={() => toggleSection("comms")}
+            onToggle={() => selectSection("comms")}
           >
             <StatGroup
               items={Object.entries(member.sections.comms.delivery_counts_by_status).map(
@@ -774,7 +860,7 @@ export default function Member360Page() {
             title="Safety"
             badge={<StatusBadge tone="success">Ready</StatusBadge>}
             open={openSections.has("safety")}
-            onToggle={() => toggleSection("safety")}
+            onToggle={() => selectSection("safety")}
           >
             <StatGroup
               items={[
@@ -795,6 +881,50 @@ export default function Member360Page() {
                 },
               ]}
             />
+            {member.sections.safety.realme?.length ? (
+              <DataTable
+                columns={[
+                  { key: "check_type", header: "Method" },
+                  { key: "status", header: "Status" },
+                  { key: "submitted_at", header: "Submitted" },
+                  { key: "reviewed_at", header: "Reviewed" },
+                ]}
+                rows={member.sections.safety.realme.map((entry) => ({
+                  check_type: entry.check_type,
+                  status: entry.status,
+                  submitted_at: formatWhen(entry.submitted_at),
+                  reviewed_at: formatWhen(entry.reviewed_at),
+                }))}
+                empty="No RealMe checks."
+              />
+            ) : null}
+            {member.sections.safety.discovery_restriction ? (
+              <div className="hq-card" style={{ marginTop: 12 }}>
+                <p className="hq-card__title" style={{ margin: 0 }}>Moderator discovery restriction</p>
+                <StatGroup
+                  items={[
+                    { label: "Restricted at", value: formatWhen(member.sections.safety.discovery_restriction.restricted_at) },
+                    { label: "Reason", value: member.sections.safety.discovery_restriction.reason },
+                    { label: "Note", value: member.sections.safety.discovery_restriction.note },
+                    { label: "Restricted by admin", value: member.sections.safety.discovery_restriction.restricted_by_admin_user_id },
+                  ]}
+                />
+              </div>
+            ) : null}
+            {member.sections.safety.account_closure ? (
+              <div className="hq-card" style={{ marginTop: 12 }}>
+                <p className="hq-card__title" style={{ margin: 0 }}>Deletion context</p>
+                <StatGroup
+                  items={[
+                    { label: "Deleted at", value: formatWhen(member.sections.safety.account_closure.created_at) },
+                    { label: "Media purge", value: member.sections.safety.account_closure.media_purge_state },
+                    { label: "Likes given / received", value: `${member.sections.product.likes_given} / ${member.sections.product.likes_received}` },
+                    { label: "Matches", value: member.sections.product.matches_active },
+                    { label: "Conversations", value: member.sections.product.conversations_count },
+                  ]}
+                />
+              </div>
+            ) : null}
             {member.sections.safety.trust_breakdown?.length ? (
               <DataTable
                 columns={[{ key: "label", header: "Trust signal" }, { key: "points", header: "Points" }, { key: "occurred_at", header: "When" }]}
@@ -869,39 +999,35 @@ export default function Member360Page() {
             title="Activity"
             badge={<StatusBadge tone="success">Ready</StatusBadge>}
             open={openSections.has("activity")}
-            onToggle={() => toggleSection("activity")}
+            onToggle={() => selectSection("activity")}
           >
             <StatGroup
               items={[{ label: "Last login", value: formatWhen(member.sections.activity.last_login_at) }]}
             />
-            <DataTable
-              columns={[
-                { key: "kind", header: "Auth kind" },
-                { key: "result", header: "Result" },
-                { key: "ip", header: "IP" },
-                { key: "created_at", header: "When" },
-              ]}
-              rows={member.sections.activity.recent_auth_attempts.map((row) => ({
-                kind: row.kind,
-                result: row.result,
-                ip: row.ip_address,
-                created_at: formatWhen(row.created_at),
-              }))}
-              empty="No recent auth attempts in the summary."
-            />
-            <DataTable
-              columns={[
-                { key: "event_type", header: "Event" },
-                { key: "severity", header: "Severity" },
-                { key: "created_at", header: "When" },
-              ]}
-              rows={member.sections.activity.recent_security_events.map((row) => ({
-                event_type: row.event_type,
-                severity: row.severity,
-                created_at: formatWhen(row.created_at),
-              }))}
-              empty="No recent security events in the summary."
-            />
+            {/* Unified chronological timeline (security + auth + enforcement + trust,
+                already merged server-side by Hq::Member360::Load#timeline) replaces the
+                two separate auth/security summaries below, which just repeated a slice
+                of the same events -- the full-history loaders further down still cover
+                paginated per-kind detail this bounded timeline doesn't. */}
+            {timelineStatus === "loading" ? <p className="hq-loading">Loading timeline…</p> : null}
+            {timelineStatus === "error" && timeline.result?.status === "error" ? (
+              <StateBanner tone="error" title="Could not load timeline" body={timeline.result.message} />
+            ) : null}
+            {timelineStatus === "ready" && timeline.result?.status === "ready" ? (
+              <DataTable
+                columns={[
+                  { key: "type", header: "Type" },
+                  { key: "name", header: "Event" },
+                  { key: "created_at", header: "When" },
+                ]}
+                rows={timeline.result.events.map((event) => ({
+                  type: event.type,
+                  name: event.name,
+                  created_at: formatWhen(event.created_at),
+                }))}
+                empty="No timeline events."
+              />
+            ) : null}
 
             <div className="hq-grid-2" style={{ marginTop: 12 }}>
               <div>

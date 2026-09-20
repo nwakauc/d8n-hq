@@ -561,13 +561,16 @@ describe("D8N HQ Phase 1 integration", () => {
       return json(404, { error: "not_found" });
     });
 
-    renderAt(`/hq/members/${PROFILE_ID}?sections=activity,safety`);
+    renderAt(`/hq/members/${PROFILE_ID}?sections=activity`);
     await screen.findByRole("heading", { name: "Lebo" });
 
     const authButtons = screen.getAllByRole("button", { name: /load auth history/i });
     await user.click(authButtons[0]!);
     expect(await screen.findByText("lebo@example.com")).toBeInTheDocument();
 
+    // Only one section is open at a time now -- switch tabs to Safety for
+    // enforcement history, same as an operator clicking between them.
+    await user.click(screen.getByRole("button", { name: /^safety/i }));
     await user.click(screen.getByRole("button", { name: /load full history/i }));
     expect(await screen.findByText("policy")).toBeInTheDocument();
   });
@@ -623,13 +626,18 @@ describe("D8N HQ Phase 1 integration", () => {
       return json(404, { error: "not_found" });
     });
 
-    renderAt(`/hq/members/${PROFILE_ID}?sections=identity,product`);
+    renderAt(`/hq/members/${PROFILE_ID}?sections=product`);
     expect(await screen.findByText(/likes given/i)).toBeInTheDocument();
     const product = screen
       .getAllByRole("button")
       .find((button) => button.getAttribute("aria-controls") === "hq-product-panel");
     expect(product).toBeTruthy();
     expect(product).toHaveAttribute("aria-expanded", "true");
+    // Only one section is open at a time now (a tab, not a stackable accordion).
+    const overview = screen
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("aria-controls") === "hq-overview-panel");
+    expect(overview).toHaveAttribute("aria-expanded", "false");
   });
 
   it("shows backend failure on Member 360 load", async () => {

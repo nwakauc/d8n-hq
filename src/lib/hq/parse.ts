@@ -1,6 +1,7 @@
 import { ApiError } from "../api/errors.ts";
 import type {
   HqAccountClosure,
+  HqDiscoveryRestriction,
   HqAccountType,
   HqAdminEnforcement,
   HqAdminReport,
@@ -517,6 +518,20 @@ function parseSafety(value: unknown): HqSafetySection {
   if (!Array.isArray(row.recent_reports)) {
     throw new ApiError(502, undefined, "invalid_hq_recent_reports");
   }
+  let discoveryRestriction: HqDiscoveryRestriction | null = null;
+  if (row.discovery_restriction !== null && row.discovery_restriction !== undefined) {
+    const restrictionRow = requireRecord(row.discovery_restriction, "discovery_restriction");
+    discoveryRestriction = {
+      restricted_at: requireString(restrictionRow.restricted_at, "discovery_restricted_at"),
+      reason: nullableString(restrictionRow.reason),
+      note: nullableString(restrictionRow.note),
+      restricted_by_admin_user_id:
+        restrictionRow.restricted_by_admin_user_id === null ||
+        restrictionRow.restricted_by_admin_user_id === undefined
+          ? null
+          : requireNumber(restrictionRow.restricted_by_admin_user_id, "restricted_by_admin_user_id"),
+    };
+  }
   let closure: HqAccountClosure | null = null;
   if (row.account_closure !== null && row.account_closure !== undefined) {
     const closureRow = requireRecord(row.account_closure, "account_closure");
@@ -545,6 +560,7 @@ function parseSafety(value: unknown): HqSafetySection {
     active_enforcement:
       row.active_enforcement === null ? null : parseAdminEnforcement(row.active_enforcement),
     enforcement_count: requireNumber(row.enforcement_count, "enforcement_count"),
+    discovery_restriction: discoveryRestriction,
     account_closure: closure,
   };
 }
