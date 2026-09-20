@@ -25,12 +25,29 @@ export type HqMemberDirectoryContactVerificationState = {
   phone: boolean;
 };
 
+/** Cheap, row-local read — composed from data already loaded for the row,
+ * not the full authoritative Member 360 discovery diagnostic. */
+export type HqMemberDirectoryDiscoveryStatus =
+  | "visible"
+  | "not_visible"
+  | "restricted"
+  | "draft"
+  | "no_profile";
+
 /** Safe operational row from GET /api/v1/hq/members — not full Member 360. */
 export type HqMemberDirectoryEntry = {
   user_id: number;
   profile_id: string | null;
   display_name: string | null;
   email: string | null;
+  phone: string | null;
+  age: number | null;
+  gender: string | null;
+  looking_for: string[];
+  city: string | null;
+  country_code: string | null;
+  account_type: string;
+  discovery_status: HqMemberDirectoryDiscoveryStatus;
   user_status: HqUserStatus;
   membership_status: HqMembershipStatus;
   profile_status: HqProfileStatus | null;
@@ -61,6 +78,8 @@ export type HqMemberDirectoryParams = {
   last_active_from?: string | null;
   last_active_to?: string | null;
   sort?: HqMemberDirectorySort | null;
+  gender?: string | null;
+  country_code?: string | null;
   cursor?: string | null;
   limit?: number;
 };

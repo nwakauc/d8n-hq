@@ -1353,6 +1353,26 @@ function parseContactVerification(value: unknown): HqMemberDirectoryEntry["conta
   };
 }
 
+function parseDiscoveryStatus(value: unknown): HqMemberDirectoryEntry["discovery_status"] {
+  if (
+    value === "visible" ||
+    value === "not_visible" ||
+    value === "restricted" ||
+    value === "draft" ||
+    value === "no_profile"
+  ) {
+    return value;
+  }
+  throw new ApiError(502, undefined, "invalid_hq_discovery_status");
+}
+
+function parseLookingFor(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new ApiError(502, undefined, "invalid_hq_looking_for");
+  }
+  return value.map((entry) => requireString(entry, "looking_for_entry"));
+}
+
 function parseMemberDirectoryEntry(value: unknown): HqMemberDirectoryEntry {
   const row = requireRecord(value, "member_directory_entry");
   return {
@@ -1360,6 +1380,14 @@ function parseMemberDirectoryEntry(value: unknown): HqMemberDirectoryEntry {
     profile_id: nullableString(row.profile_id),
     display_name: nullableString(row.display_name),
     email: nullableString(row.email),
+    phone: nullableString(row.phone),
+    age: nullableNumber(row.age, "member_directory_age"),
+    gender: nullableString(row.gender),
+    looking_for: parseLookingFor(row.looking_for),
+    city: nullableString(row.city),
+    country_code: nullableString(row.country_code),
+    account_type: requireString(row.account_type, "member_directory_account_type"),
+    discovery_status: parseDiscoveryStatus(row.discovery_status),
     user_status: parseUserStatus(row.user_status),
     membership_status: parseMembershipStatus(row.membership_status),
     profile_status: parseProfileStatus(row.profile_status),

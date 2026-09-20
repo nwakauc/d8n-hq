@@ -34,6 +34,24 @@ function formatWhen(value: string | null | undefined): string {
   return value.replace("T", " ").replace(/\.\d+Z$/, "Z");
 }
 
+/** Relative display for the table cell; the exact timestamp is still the
+ * title attribute so operators can see precision on hover. */
+function formatRelative(value: string | null | undefined): string {
+  if (!value) return "—";
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(then);
+}
+
 function humanizeKey(key: string): string {
   return key.replace(/_/g, " ");
 }
@@ -55,6 +73,91 @@ function memberLabel(entry: HqMemberDirectoryEntry): string {
 function memberPath(entry: HqMemberDirectoryEntry, base: string): string | null {
   if (!entry.profile_id) return null;
   return `${base}/${encodeURIComponent(entry.profile_id)}`;
+}
+
+/** Email if present (matches most operator muscle memory), else masked
+ * phone. Both identifiers remain available inside Member 360. */
+function registrationIdentifier(entry: HqMemberDirectoryEntry): string {
+  return entry.email ?? entry.phone ?? "—";
+}
+
+function locationLabel(entry: HqMemberDirectoryEntry): string {
+  if (entry.city && entry.country_code) return `${entry.city}, ${entry.country_code}`;
+  return entry.city ?? entry.country_code ?? "—";
+}
+
+function lookingForLabel(entry: HqMemberDirectoryEntry): string {
+  if (entry.looking_for.length === 0) return "—";
+  return entry.looking_for.map(humanizeKey).join(", ");
+}
+
+const DISCOVERY_LABELS: Record<HqMemberDirectoryEntry["discovery_status"], string> = {
+  visible: "Visible",
+  not_visible: "Not visible",
+  restricted: "Restricted",
+  draft: "Draft",
+  no_profile: "No profile",
+};
+
+const DISCOVERY_TONE: Record<HqMemberDirectoryEntry["discovery_status"], "success" | "warning" | "danger" | "neutral"> = {
+  visible: "success",
+  not_visible: "neutral",
+  restricted: "danger",
+  draft: "neutral",
+  no_profile: "neutral",
+};
+
+/** Consolidated account+profile state -- distinct backend states stay
+ * distinct (never collapsed to a generic "Active"), matching whichever
+ * dimension is actually abnormal; a healthy row shows the plain profile
+ * status rather than three redundant "active" badges. */
+function statusLabel(entry: HqMemberDirectoryEntry): string {
+  if (entry.membership_status !== "active") return humanizeKey(entry.membership_status);
+  if (entry.user_status !== "active") return humanizeKey(entry.user_status);
+  if (entry.profile_status && entry.profile_status !== "active") return humanizeKey(entry.profile_status);
+  return entry.profile_status ? "Active" : "No profile";
+}
+
+function statusTone(entry: HqMemberDirectoryEntry): "success" | "warning" | "danger" | "neutral" {
+  if (entry.membership_status === "suspended" || entry.user_status === "suspended") return "danger";
+  if (entry.membership_status !== "active" || entry.user_status !== "active") return "warning";
+  if (entry.profile_status === "suspended") return "danger";
+  if (entry.profile_status && entry.profile_status !== "active") return "warning";
+  return entry.profile_status ? "success" : "neutral";
+}
+
+/** Commits on blur/Enter rather than every keystroke, like DirectorySearch,
+ * but without its own submit button -- these sit inline in the filter bar. */
+function TextFilter({
+  value,
+  placeholder,
+  ariaLabel,
+  inputClass,
+  onCommit,
+}: {
+  value: string;
+  placeholder: string;
+  ariaLabel: string;
+  inputClass: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  return (
+    <input
+      className={inputClass}
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => onCommit(draft.trim())}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          onCommit(draft.trim());
+        }
+      }}
+    />
+  );
 }
 
 function TableSkeleton({ rows = 6 }: { rows?: number }) {
@@ -114,7 +217,6 @@ function DirectoryResults({
   filters,
   hasActiveFilters,
   btnClass,
-  btnPrimary,
 }: {
   apiParams: HqMemberDirectoryParams;
   filterKey: string;
@@ -122,7 +224,6 @@ function DirectoryResults({
   filters: Omit<HqMemberDirectoryParams, "cursor" | "limit">;
   hasActiveFilters: boolean;
   btnClass: string;
-  btnPrimary: string;
 }) {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [pendingMore, setPendingMore] = useState(false);
@@ -192,109 +293,84 @@ function DirectoryResults({
             tableClassName="hq-directory-table"
             columns={[
               { key: "member", header: "Member" },
-              { key: "email", header: "Email" },
-              { key: "account", header: "Account" },
-              { key: "profile", header: "Profile" },
+              { key: "identifier", header: "Registration ID" },
+              { key: "gender", header: "Gender" },
+              { key: "looking_for", header: "Looking for" },
+              { key: "location", header: "Location" },
               { key: "joined", header: "Joined" },
               { key: "active", header: "Last active" },
-              { key: "signals", header: "Signals" },
-              { key: "actions", header: "" },
+              { key: "discovery", header: "Discovery" },
+              { key: "safety", header: "Safety" },
+              { key: "status", header: "Status" },
+              { key: "account_type", header: "Account type" },
             ]}
             rows={(load.status === "ready" || load.status === "error" ? load.rows : []).map(
               (entry) => {
                 const path = memberPath(entry, memberBasePath);
                 const name = memberLabel(entry);
-                // Membership/user/profile status are each independently "active" for
-                // any healthy member, so showing all three as separate badges reads
-                // as the same word repeated three times. Only surface a badge when a
-                // dimension is NOT in its routine/expected state -- a clean row with
-                // nothing to flag shows a single "OK", not three redundant pills.
-                const accountFlags = [
-                  entry.membership_status !== "active"
-                    ? { tone: "warning" as const, label: humanizeKey(entry.membership_status) }
-                    : null,
-                  entry.user_status !== "active"
-                    ? { tone: "warning" as const, label: humanizeKey(entry.user_status) }
-                    : null,
-                ].filter((flag): flag is { tone: "warning"; label: string } => flag !== null);
-                const profileFlags = [
-                  entry.profile_status && entry.profile_status !== "active"
-                    ? {
-                        tone: entry.profile_status === "suspended" ? ("danger" as const) : ("warning" as const),
-                        label: humanizeKey(entry.profile_status),
-                      }
-                    : null,
-                  entry.profile_visibility && entry.profile_visibility !== "visible"
-                    ? { tone: "neutral" as const, label: humanizeKey(entry.profile_visibility) }
-                    : null,
-                ].filter((flag): flag is { tone: "danger" | "warning" | "neutral"; label: string } => flag !== null);
+                const verified = entry.contact_verification.email || entry.contact_verification.phone;
+                const safetyPath = path ? `${path}?sections=safety` : null;
+
                 return {
-                  member: path ? (
-                    <Link className="hq-inline-link" to={path}>
-                      {name}
-                    </Link>
-                  ) : (
-                    name
-                  ),
-                  email: entry.email ?? <span className="hq-card__subtitle">—</span>,
-                  account: (
-                    <div className="hq-directory__badges">
-                      {accountFlags.length > 0 ? (
-                        accountFlags.map((flag) => (
-                          <StatusBadge key={flag.label} tone={flag.tone}>
-                            {flag.label}
-                          </StatusBadge>
-                        ))
-                      ) : (
-                        <StatusBadge tone="success">OK</StatusBadge>
-                      )}
+                  member: (
+                    <div className="hq-directory__member">
+                      <span className="hq-directory__avatar" aria-hidden="true">
+                        {name.trim().slice(0, 1).toUpperCase() || "?"}
+                      </span>
+                      <span className="hq-directory__member-copy">
+                        {path ? (
+                          <Link className="hq-inline-link" to={path}>
+                            {name}
+                            {entry.age !== null ? `, ${entry.age}` : ""}
+                          </Link>
+                        ) : (
+                          <span>
+                            {name}
+                            {entry.age !== null ? `, ${entry.age}` : ""}
+                          </span>
+                        )}
+                        <small
+                          className="hq-card__subtitle"
+                          title={verified ? contactVerificationLabel(entry.contact_verification) : undefined}
+                        >
+                          {verified ? "✓ " : ""}
+                          {entry.profile_id ?? `#${entry.user_id}`}
+                        </small>
+                      </span>
                     </div>
                   ),
-                  profile: (
-                    <div className="hq-directory__badges">
-                      {!entry.profile_status ? (
-                        <span className="hq-card__subtitle">No profile</span>
-                      ) : profileFlags.length > 0 ? (
-                        profileFlags.map((flag) => (
-                          <StatusBadge key={flag.label} tone={flag.tone}>
-                            {flag.label}
-                          </StatusBadge>
-                        ))
-                      ) : (
-                        <StatusBadge tone="success">OK</StatusBadge>
-                      )}
-                      <StatusBadge tone="neutral" title="Verified contact methods">
-                        {contactVerificationLabel(entry.contact_verification)}
-                      </StatusBadge>
-                    </div>
+                  identifier: registrationIdentifier(entry),
+                  gender: entry.gender ? humanizeKey(entry.gender) : "—",
+                  looking_for: lookingForLabel(entry),
+                  location: locationLabel(entry),
+                  joined: (
+                    <span title={formatWhen(entry.joined_at)}>{formatRelative(entry.joined_at)}</span>
                   ),
-                  joined: formatWhen(entry.joined_at),
-                  active: formatWhen(entry.last_active_at),
-                  signals: (
+                  active: (
+                    <span title={formatWhen(entry.last_active_at)}>{formatRelative(entry.last_active_at)}</span>
+                  ),
+                  discovery: <StatusBadge tone={DISCOVERY_TONE[entry.discovery_status]}>{DISCOVERY_LABELS[entry.discovery_status]}</StatusBadge>,
+                  safety: (
                     <div className="hq-directory__badges">
                       {entry.reports_received_count > 0 ? (
-                        <StatusBadge tone="warning">{entry.reports_received_count} reports</StatusBadge>
+                        <StatusBadge tone="warning">{entry.reports_received_count} report{entry.reports_received_count === 1 ? "" : "s"}</StatusBadge>
                       ) : null}
                       {entry.pending_photo_count > 0 ? (
-                        <StatusBadge tone="accent">{entry.pending_photo_count} photos</StatusBadge>
+                        <StatusBadge tone="accent">{entry.pending_photo_count} photo{entry.pending_photo_count === 1 ? "" : "s"}</StatusBadge>
                       ) : null}
-                      {entry.active_enforcement ? (
-                        <StatusBadge tone="danger">Enforced</StatusBadge>
+                      {entry.active_enforcement ? <StatusBadge tone="danger">Enforced</StatusBadge> : null}
+                      {!entry.reports_received_count && !entry.pending_photo_count && !entry.active_enforcement ? (
+                        <StatusBadge tone="success">Clean</StatusBadge>
                       ) : null}
-                      {!entry.reports_received_count &&
-                      !entry.pending_photo_count &&
-                      !entry.active_enforcement ? (
-                        <span className="hq-card__subtitle">—</span>
+                      {safetyPath ? (
+                        <Link className="hq-inline-link" to={safetyPath} aria-label={`${name} safety detail`}>
+                          Detail
+                        </Link>
                       ) : null}
                     </div>
                   ),
-                  actions: path ? (
-                    <Link className={btnPrimary} to={path}>
-                      Open
-                    </Link>
-                  ) : (
-                    <span className="hq-card__subtitle">No profile</span>
-                  ),
+                  status: <StatusBadge tone={statusTone(entry)}>{statusLabel(entry)}</StatusBadge>,
+                  account_type: entry.account_type,
                 };
               },
             )}
@@ -377,6 +453,8 @@ export function MemberDirectoryPanel({
       filters.created_to ||
       filters.last_active_from ||
       filters.last_active_to ||
+      filters.gender ||
+      filters.country_code ||
       (filters.sort && filters.sort !== "newest"),
   );
 
@@ -485,6 +563,24 @@ export function MemberDirectoryPanel({
               ))}
             </select>
 
+            <TextFilter
+              key={`gender:${filters.gender ?? ""}`}
+              value={filters.gender ?? ""}
+              placeholder="Gender"
+              ariaLabel="Gender"
+              inputClass={inputClass}
+              onCommit={(value) => updateFilters({ gender: value || null })}
+            />
+
+            <TextFilter
+              key={`country:${filters.country_code ?? ""}`}
+              value={filters.country_code ?? ""}
+              placeholder="Country code"
+              ariaLabel="Country code"
+              inputClass={inputClass}
+              onCommit={(value) => updateFilters({ country_code: value || null })}
+            />
+
             <select
               className={selectClass}
               aria-label="Sort order"
@@ -519,7 +615,6 @@ export function MemberDirectoryPanel({
         filters={filters}
         hasActiveFilters={hasActiveFilters}
         btnClass={btnClass}
-        btnPrimary={btnPrimary}
       />
     </div>
   );

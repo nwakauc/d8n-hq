@@ -19,10 +19,13 @@ import {
   parseIdentityCorrectionResponse,
   parseProfilePhotoModerationResult,
   parseProfilePhotoQueue,
+  parseProductFunnel,
+  parseProductTrends,
   parseManagedOperatorList,
   parseManagedOperatorResponse,
   parseRealmeModerationResult,
   parseRealmeQueue,
+  parseRegistrationTrendResponse,
   parseRepeatOffenderList,
   parseSecurityAlertList,
   parseSecurityEventList,
@@ -57,11 +60,14 @@ import type {
   HqMemberDirectoryParams,
   HqProfilePhotoModerationResult,
   HqProfilePhotoQueue,
+  HqProductFunnel,
+  HqProductTrends,
   HqRealmeDecision,
   HqRealmeModerationResult,
   HqRealmeQueue,
   HqUpdateOperatorBody,
   HqRepeatOffenderList,
+  HqRegistrationTrendResponse,
   HqSecurityAlertList,
   HqSecurityEventList,
   HqSuspendProfileBody,
@@ -175,6 +181,12 @@ export async function fetchHqMemberDirectory(
   if (params?.sort) {
     query.set("sort", params.sort);
   }
+  if (params?.gender) {
+    query.set("gender", params.gender);
+  }
+  if (params?.country_code) {
+    query.set("country_code", params.country_code);
+  }
   if (params?.cursor) {
     query.set("cursor", params.cursor);
   }
@@ -266,6 +278,47 @@ export async function fetchCommandCentreHealth(): Promise<HqCommandCentreHealth>
 export async function fetchCommandCentreBrands(): Promise<HqCommandCentreBrandsResponse> {
   const data = await apiRequest("/api/v1/hq/command_centre/brands");
   return parseCommandCentreBrands(data);
+}
+
+export async function fetchCommandCentreRegistrationTrends(
+  window: string,
+): Promise<HqRegistrationTrendResponse> {
+  const query = new URLSearchParams({ window });
+  try {
+    const data = await apiRequest(`/api/v1/hq/command_centre/registration_trends?${query}`);
+    return parseRegistrationTrendResponse(data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(404, "registration_trends_unavailable", error.message);
+    }
+    throw error;
+  }
+}
+
+export async function fetchHqProductFunnel(window: string): Promise<HqProductFunnel> {
+  const query = new URLSearchParams({ window });
+  try {
+    const data = await apiRequest(`/api/v1/hq/product_intelligence/funnel?${query}`);
+    return parseProductFunnel(data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(404, "product_funnel_unavailable", error.message);
+    }
+    throw error;
+  }
+}
+
+export async function fetchHqProductTrends(window: string): Promise<HqProductTrends> {
+  const query = new URLSearchParams({ window });
+  try {
+    const data = await apiRequest(`/api/v1/hq/product_intelligence/trends?${query}`);
+    return parseProductTrends(data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(404, "product_trends_unavailable", error.message);
+    }
+    throw error;
+  }
 }
 
 export async function fetchRepeatOffenders(limit?: number): Promise<HqRepeatOffenderList> {
@@ -512,6 +565,15 @@ export function hqErrorMessage(error: unknown): string {
     return "You are signed in, but you are not authorized for this action on this brand.";
   }
   if (error.status === 404) {
+    if (error.code === "registration_trends_unavailable") {
+      return "Registration history is not available on this deployment yet.";
+    }
+    if (error.code === "product_funnel_unavailable") {
+      return "The product funnel is not available on this deployment yet.";
+    }
+    if (error.code === "product_trends_unavailable") {
+      return "Marketplace trend history is not available on this deployment yet.";
+    }
     if (error.code === "report_unavailable") {
       return "That report is unavailable for this brand.";
     }

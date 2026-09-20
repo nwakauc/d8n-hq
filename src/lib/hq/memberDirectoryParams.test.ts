@@ -21,6 +21,8 @@ describe("memberDirectoryParams", () => {
       last_active_from: null,
       last_active_to: null,
       sort: "recently_active",
+      gender: null,
+      country_code: null,
     });
   });
 

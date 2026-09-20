@@ -49,6 +49,8 @@ export function directoryParamsFromSearchParams(
     last_active_from: params.get("last_active_from") || null,
     last_active_to: params.get("last_active_to") || null,
     sort: readEnum(params.get("sort"), SORTS) ?? "newest",
+    gender: params.get("gender")?.trim() || null,
+    country_code: params.get("country_code")?.trim().toUpperCase() || null,
   };
 }
 
@@ -80,6 +82,8 @@ export function writeDirectoryParamsToSearchParams(
   setOrDelete("last_active_from", filters.last_active_from);
   setOrDelete("last_active_to", filters.last_active_to);
   setOrDelete("sort", filters.sort, "newest");
+  setOrDelete("gender", filters.gender);
+  setOrDelete("country_code", filters.country_code);
 
   return next;
 }
