@@ -1,8 +1,5 @@
-import { useMemo, useState } from "react";
 import type { HqCommandCentreBrandsResponse, HqCommandCentreHealth } from "../../../lib/hq/types.ts";
 import { presentMetric } from "../commandCentreMetric.ts";
-import { FounderHorizontalBars } from "./charts/FounderCharts.tsx";
-import { FounderMetricValue } from "./FounderMetricInfo.tsx";
 
 type ComparisonMetric = {
   id: string;
@@ -49,39 +46,22 @@ const METRICS: ComparisonMetric[] = [
   },
 ];
 
+/** The one genuinely cross-brand panel on the page (backed by an
+ * admin_user-scoped service, not the current brand session) — every brand
+ * you can see, side by side. A table is the actual comparison view here;
+ * it used to also duplicate itself as a metric-picker bar chart and a
+ * per-brand detail panel, which just repeated these same rows two more
+ * ways without adding information. */
 export function FounderBrandComparison({
   comparison,
 }: {
   comparison: HqCommandCentreBrandsResponse;
 }) {
   const brands = comparison.brands;
-  const [metricId, setMetricId] = useState(METRICS[0]?.id ?? "members");
-  const [selectedBrand, setSelectedBrand] = useState(brands[0]?.brand ?? "");
-
-  const activeMetric = METRICS.find((metric) => metric.id === metricId) ?? METRICS[0];
-
-  const barRows = useMemo(() => {
-    if (!activeMetric) return [];
-    const values = brands.map((entry) => {
-      const presentation = activeMetric.pick(entry.brand_health);
-      return presentation.numeric;
-    });
-    const max = Math.max(1, ...values.map((value) => value ?? 0));
-    return brands.map((entry, index) => ({
-      key: entry.brand,
-      label: entry.brand,
-      value: values[index] ?? null,
-      max,
-      tone:
-        entry.brand === selectedBrand ? "var(--founder-accent-charcoal)" : "var(--founder-accent-blue)",
-    }));
-  }, [activeMetric, brands, selectedBrand]);
 
   if (brands.length < 2) {
     return null;
   }
-
-  const selected = brands.find((entry) => entry.brand === selectedBrand) ?? brands[0];
 
   return (
     <section className="founder-panel" aria-labelledby="founder-brands-title">
@@ -96,92 +76,31 @@ export function FounderBrandComparison({
         </div>
       </header>
 
-      <div className="founder-brand-tabs" role="tablist" aria-label="Brands">
-        {brands.map((entry) => (
-          <button
-            key={entry.brand}
-            type="button"
-            role="tab"
-            aria-selected={entry.brand === selectedBrand}
-            className="founder-brand-tabs__tab"
-            onClick={() => setSelectedBrand(entry.brand)}
-          >
-            {entry.brand}
-          </button>
-        ))}
-      </div>
-
-      <div className="founder-brand-layout">
-        <div className="founder-brand-visual">
-          <label className="founder-brand-metric-select">
-            <span>Compare</span>
-            <select
-              value={metricId}
-              onChange={(event) => setMetricId(event.target.value)}
-              aria-label="Comparison metric"
-            >
+      <div className="founder-brand-table-wrap">
+        <table className="founder-brand-table">
+          <thead>
+            <tr>
+              <th scope="col">Brand</th>
               {METRICS.map((metric) => (
-                <option key={metric.id} value={metric.id}>
+                <th key={metric.id} scope="col">
                   {metric.label}
-                </option>
+                </th>
               ))}
-            </select>
-          </label>
-          <FounderHorizontalBars
-            rows={barRows}
-            ariaLabel={`${activeMetric?.label ?? "Metric"} comparison across brands`}
-          />
-        </div>
-
-        {selected ? (
-          <div className="founder-brand-detail" role="tabpanel">
-            <h3>{selected.brand}</h3>
-            <p className="founder-brand-detail__role">{selected.role}</p>
-            <dl className="founder-brand-detail__metrics">
-              {METRICS.map((metric) => {
-                const presentation = metric.pick(selected.brand_health);
-                return (
-                  <div key={metric.id}>
-                    <dt>{metric.label}</dt>
-                    <dd>
-                      <FounderMetricValue presentation={presentation} />
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-          </div>
-        ) : null}
-      </div>
-
-      <details className="founder-brand-table-details">
-        <summary>Detailed table</summary>
-        <div className="founder-brand-table-wrap">
-          <table className="founder-brand-table">
-            <thead>
-              <tr>
-                <th scope="col">Brand</th>
-                {METRICS.map((metric) => (
-                  <th key={metric.id} scope="col">
-                    {metric.label}
-                  </th>
-                ))}
+            </tr>
+          </thead>
+          <tbody>
+            {brands.map((entry) => (
+              <tr key={entry.brand}>
+                <th scope="row">{entry.brand}</th>
+                {METRICS.map((metric) => {
+                  const presentation = metric.pick(entry.brand_health);
+                  return <td key={metric.id}>{presentation.text}</td>;
+                })}
               </tr>
-            </thead>
-            <tbody>
-              {brands.map((entry) => (
-                <tr key={entry.brand}>
-                  <th scope="row">{entry.brand}</th>
-                  {METRICS.map((metric) => {
-                    const presentation = metric.pick(entry.brand_health);
-                    return <td key={metric.id}>{presentation.text}</td>;
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

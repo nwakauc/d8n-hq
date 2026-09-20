@@ -1416,53 +1416,6 @@
   color: var(--founder-text-muted);
 }
 
-.founder-brand-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.founder-brand-tabs__tab {
-  border: 1px solid var(--founder-border);
-  background: var(--founder-surface-muted);
-  color: var(--founder-text-muted);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.founder-brand-tabs__tab[aria-selected="true"] {
-  background: var(--founder-accent-charcoal);
-  color: #fff;
-  border-color: var(--founder-accent-charcoal);
-}
-
-.founder-brand-layout {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 16px;
-}
-
-.founder-brand-metric-select {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: var(--founder-text-muted);
-}
-
-.founder-brand-metric-select select {
-  border: 1px solid var(--founder-border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: #fff;
-  font: inherit;
-}
-
 .founder-hbars {
   list-style: none;
   margin: 0;
@@ -1502,46 +1455,6 @@
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-.founder-brand-detail h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.founder-brand-detail__role {
-  margin: 4px 0 12px;
-  font-size: 12px;
-  color: var(--founder-text-muted);
-  text-transform: capitalize;
-}
-
-.founder-brand-detail__metrics {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.founder-brand-detail__metrics dt {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--founder-text-faint);
-}
-
-.founder-brand-detail__metrics dd {
-  margin: 2px 0 0;
-}
-
-.founder-brand-table-details {
-  margin-top: 16px;
-  font-size: 13px;
-}
-
-.founder-brand-table-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--founder-accent-blue);
 }
 
 .founder-brand-table-wrap {
@@ -1658,9 +1571,6 @@
   .founder-col-3,
   .founder-col-2 {
     grid-column: span 12;
-  }
-  .founder-brand-layout {
-    grid-template-columns: 1fr;
   }
 }
 
