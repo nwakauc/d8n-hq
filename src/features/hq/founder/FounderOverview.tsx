@@ -11,7 +11,6 @@ import { FounderCompanyPulse } from "./FounderCompanyPulse.tsx";
 import { FounderHeroMetrics, FounderHeroMetricsSkeleton } from "./FounderHeroMetrics.tsx";
 import { FounderMarketplacePulse } from "./FounderMarketplacePulse.tsx";
 import { FounderProfileHealth } from "./FounderProfileHealth.tsx";
-import { FounderSecurityAlerts } from "./FounderSecurityAlerts.tsx";
 import { FounderSystemStatus } from "./FounderSystemStatus.tsx";
 import { FounderTrustSafety } from "./FounderTrustSafety.tsx";
 import { DailyRegistrationsPanel } from "../analytics/DailyRegistrationsPanel.tsx";
@@ -168,15 +167,14 @@ export function FounderOverview({
             </div>
           </div>
 
+          {/* Security Alerts already renders in full via Live Activity above (and
+              /hq/alerts) — this row stays two panels instead of repeating that list. */}
           <div className="founder-dashboard__row">
-            <div className="founder-col-4">
+            <div className="founder-col-6">
               <FounderMarketplacePools />
             </div>
-            <div className="founder-col-4">
+            <div className="founder-col-6">
               <FounderRetention />
-            </div>
-            <div className="founder-col-4">
-              <FounderSecurityAlerts alerts={data.alerts} error={data.alertsError} />
             </div>
           </div>
 
