@@ -697,6 +697,66 @@ export function parseSecurityAlertList(data: unknown): HqSecurityAlertList {
   };
 }
 
+function parseLiveEventSeverity(value: unknown): import("./types.ts").HqLiveEventSeverity {
+  if (value === "info" || value === "attention" || value === "warning" || value === "critical") {
+    return value;
+  }
+  throw new ApiError(502, undefined, "invalid_hq_live_event_severity");
+}
+
+function parseLiveEventCategory(value: unknown): import("./types.ts").HqLiveEventCategory {
+  if (
+    value === "member" ||
+    value === "profile" ||
+    value === "marketplace" ||
+    value === "conversation" ||
+    value === "trust_safety" ||
+    value === "security" ||
+    value === "operator" ||
+    value === "system"
+  ) {
+    return value;
+  }
+  throw new ApiError(502, undefined, "invalid_hq_live_event_category");
+}
+
+function parseLiveEventSubject(value: unknown): import("./types.ts").HqLiveEventSubject | null {
+  if (value === null || value === undefined) return null;
+  const row = requireRecord(value, "live_event_subject");
+  const id = row.id;
+  return {
+    type: requireString(row.type, "live_event_subject_type"),
+    id: typeof id === "number" || typeof id === "string" ? id : null,
+  };
+}
+
+function parseLiveEvent(value: unknown): import("./types.ts").HqLiveEvent {
+  const row = requireRecord(value, "live_event");
+  return {
+    id: requireString(row.id, "live_event_id"),
+    event_type: requireString(row.event_type, "live_event_type"),
+    category: parseLiveEventCategory(row.category),
+    severity: parseLiveEventSeverity(row.severity),
+    occurred_at: requireString(row.occurred_at, "live_event_occurred_at"),
+    brand: requireString(row.brand, "live_event_brand"),
+    title: requireString(row.title, "live_event_title"),
+    description: requireString(row.description, "live_event_description"),
+    subject: parseLiveEventSubject(row.subject),
+    metadata: parseMetadata(row.metadata),
+  };
+}
+
+export function parseLiveEventsResult(data: unknown): import("./types.ts").HqLiveEventsResult {
+  const root = requireRecord(data, "live_events_result");
+  if (!Array.isArray(root.events)) {
+    throw new ApiError(502, undefined, "invalid_hq_live_events");
+  }
+  return {
+    generated_at: requireString(root.generated_at, "live_events_generated_at"),
+    events: root.events.map(parseLiveEvent),
+  };
+}
+
 export function parseVersionInfo(data: unknown): import("./types.ts").HqVersionInfo {
   const row = requireRecord(data, "version");
   if (row.app !== "d8n") {

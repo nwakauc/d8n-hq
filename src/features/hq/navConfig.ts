@@ -48,7 +48,7 @@ export const HQ_NAV: HqNavEntry[] = [
       label: "Command centre",
       items: [
         live({ id: "command-centre", label: "Command Centre", path: "/hq" }),
-        soon({ id: "live-events", label: "Live / Events", path: "/hq/live" }),
+        live({ id: "live-events", label: "Live / Events", path: "/hq/live" }),
         live({ id: "alerts", label: "Security alerts", path: "/hq/alerts" }),
         soon({ id: "incidents", label: "Incidents", path: "/hq/incidents" }),
       ],

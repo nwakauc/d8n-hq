@@ -17,6 +17,7 @@ import {
   parseMfaConfirmationResponse,
   parseMfaEnrollmentResponse,
   parseIdentityCorrectionResponse,
+  parseLiveEventsResult,
   parseProfilePhotoModerationResult,
   parseProfilePhotoQueue,
   parseProductFunnel,
@@ -451,6 +452,20 @@ export async function fetchHqSecurityAlerts(params?: {
   const query = search.toString();
   const data = await apiRequest(`/api/v1/hq/security_alerts${query ? `?${query}` : ""}`);
   return parseSecurityAlertList(data);
+}
+
+export async function fetchHqLiveEvents(params?: {
+  brand?: "all";
+  since?: string;
+  limit?: number;
+}): Promise<import("./types.ts").HqLiveEventsResult> {
+  const search = new URLSearchParams();
+  if (params?.brand) search.set("brand", params.brand);
+  if (params?.since) search.set("since", params.since);
+  if (params?.limit !== undefined) search.set("limit", String(params.limit));
+  const query = search.toString();
+  const data = await apiRequest(`/api/v1/hq/live_events${query ? `?${query}` : ""}`);
+  return parseLiveEventsResult(data);
 }
 
 export async function fetchD8nVersion(): Promise<import("./types.ts").HqVersionInfo> {

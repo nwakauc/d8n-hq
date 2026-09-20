@@ -15,6 +15,7 @@ const ROLE_LABELS: Record<HqOperatorRole, string> = {
 /** Nav items that require at least one listed capability; null means any operator. */
 export const HQ_NAV_CAPABILITIES: Record<string, readonly HqCapability[] | null> = {
   "command-centre": null,
+  "live-events": ["hq.security_alerts.read"],
   alerts: ["hq.security_alerts.read"],
   members: ["hq.member.sensitive_read"],
   "trust-safety": ["hq.trust_safety.read", "admin.reports.read"],

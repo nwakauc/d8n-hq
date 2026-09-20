@@ -510,6 +510,45 @@ export type HqSecurityAlertList = {
   alerts: HqSecurityEvent[];
 };
 
+/** Broader than HqSecuritySeverity: Hq::EventFeed adds "attention" for
+ *  operational events (reports, enforcements, negative trust changes) that
+ *  aren't backed by SecurityEvent's DB-enum severity column. */
+export type HqLiveEventSeverity = "info" | "attention" | "warning" | "critical";
+
+export type HqLiveEventCategory =
+  | "member"
+  | "profile"
+  | "marketplace"
+  | "conversation"
+  | "trust_safety"
+  | "security"
+  | "operator"
+  | "system";
+
+export type HqLiveEventSubject = {
+  type: string;
+  id: string | number | null;
+};
+
+/** One row from GET /api/v1/hq/live_events. */
+export type HqLiveEvent = {
+  id: string;
+  event_type: string;
+  category: HqLiveEventCategory;
+  severity: HqLiveEventSeverity;
+  occurred_at: string;
+  brand: string;
+  title: string;
+  description: string;
+  subject: HqLiveEventSubject | null;
+  metadata: Record<string, unknown>;
+};
+
+export type HqLiveEventsResult = {
+  generated_at: string;
+  events: HqLiveEvent[];
+};
+
 /** Public release identity from GET /api/v1/version (no session required). */
 export type HqVersionInfo = {
   app: "d8n";
