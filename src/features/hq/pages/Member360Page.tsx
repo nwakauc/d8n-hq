@@ -220,7 +220,10 @@ export default function Member360Page() {
 
   function selectSection(key: SectionKey) {
     const params = new URLSearchParams(searchParams);
-    params.set("sections", key);
+    // Clicking the already-open tab closes it back to nothing open, same as
+    // clicking an accordion header a second time -- clicking a different tab
+    // still switches straight to it (only one open at a time).
+    params.set("sections", openSections.has(key) ? "" : key);
     setSearchParams(params, { replace: true });
   }
 
