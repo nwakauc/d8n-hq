@@ -631,6 +631,12 @@ export function hqErrorMessage(error: unknown): string {
     return "This action conflicts with the current state. Refresh and try again.";
   }
   if (error.status === 422) {
+    if (error.code === "backup_not_configured") {
+      return "Database backup storage is not configured for the brand buckets yet.";
+    }
+    if (error.code === "backup_failed") {
+      return "The database backup could not be completed. Check the backup service logs and try again.";
+    }
     if (error.code === "admin_mfa_code_invalid") {
       return "That code was not accepted. Check your authenticator app or recovery code.";
     }

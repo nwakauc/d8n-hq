@@ -80,11 +80,16 @@ describe("D8N HQ Live / Events", () => {
 
     expect(await screen.findByText("New match")).toBeInTheDocument();
     expect(screen.getAllByText("RuntimeError: boom").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("button", { name: "Auth password registration errored" }).closest("tr")).toHaveClass("hq-live-table__row--critical");
 
     await user.click(screen.getByRole("button", { name: /new match/i }));
     expect(await screen.findByText("match.created")).toBeInTheDocument();
     expect(screen.getByText(/match #m-public-9/i)).toBeInTheDocument();
     expect(screen.queryByText("Open Member 360 →")).not.toBeInTheDocument();
+    const errorsCard = screen.getByRole("button", { name: /Errors/i });
+    await user.click(errorsCard);
+    expect(errorsCard).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: /new match/i })).not.toBeInTheDocument();
   });
 
   it("filters the stream by category tab", async () => {
