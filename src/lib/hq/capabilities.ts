@@ -19,6 +19,7 @@ export const HQ_NAV_CAPABILITIES: Record<string, readonly HqCapability[] | null>
   alerts: ["hq.security_alerts.read"],
   members: ["hq.member.sensitive_read"],
   "trust-safety": ["hq.trust_safety.read", "admin.reports.read"],
+  database: ["hq.system.read"],
 };
 
 export function formatOperatorRole(role: HqOperatorRole): string {

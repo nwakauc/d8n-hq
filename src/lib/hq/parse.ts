@@ -11,6 +11,8 @@ import type {
   HqCommandCentreBrandEntry,
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
+  HqDatabaseBackup,
+  HqDatabaseBackupsResponse,
   HqRegistrationTrendBrand,
   HqRegistrationTrendResponse,
   HqProductFunnel,
@@ -771,6 +773,53 @@ export function parseVersionInfo(data: unknown): import("./types.ts").HqVersionI
     rails_environment: requireString(row.rails_environment, "version_rails_environment"),
     build_timestamp: nullableString(row.build_timestamp),
     booted_at: requireString(row.booted_at, "version_booted_at"),
+  };
+}
+
+function parseDatabaseBackup(value: unknown): HqDatabaseBackup {
+  const row = requireRecord(value, "database_backup");
+  if (row.database !== "primary" && row.database !== "queue") {
+    throw new ApiError(502, undefined, "invalid_hq_database_backup_database");
+  }
+  return {
+    key: requireString(row.key, "database_backup_key"),
+    database: row.database,
+    brand: requireString(row.brand, "database_backup_brand"),
+    schedule: row.schedule === undefined ? undefined : requireString(row.schedule, "database_backup_schedule"),
+    uploaded_at: requireString(row.uploaded_at, "database_backup_uploaded_at"),
+    size_bytes: nullableNumber(row.size_bytes, "database_backup_size_bytes"),
+    checksum: nullableString(row.checksum),
+  };
+}
+
+export function parseDatabaseBackups(data: unknown): HqDatabaseBackupsResponse {
+  const root = requireRecord(data, "database_backups_response");
+  const statuses = ["available", "stale", "partial", "not_configured", "error"] as const;
+  if (!statuses.includes(root.status as HqDatabaseBackupsResponse["status"])) {
+    throw new ApiError(502, undefined, "invalid_hq_database_backup_status");
+  }
+  const latest = requireRecord(root.latest, "database_backups_latest");
+  const parseNullableBackup = (value: unknown, label: string) => {
+    if (value === null) return null;
+    if (value === undefined) throw new ApiError(502, undefined, label);
+    return parseDatabaseBackup(value);
+  };
+  if (!Array.isArray(root.recent)) {
+    throw new ApiError(502, undefined, "invalid_hq_database_backups_recent");
+  }
+  return {
+    status: root.status as HqDatabaseBackupsResponse["status"],
+    generated_at: requireString(root.generated_at, "database_backups_generated_at"),
+    bucket: nullableString(root.bucket),
+    retention_count: nullableNumber(root.retention_count, "database_backups_retention_count"),
+    latest: {
+      primary: parseNullableBackup(latest.primary, "invalid_hq_database_backups_primary"),
+      queue: parseNullableBackup(latest.queue, "invalid_hq_database_backups_queue"),
+    },
+    recent: root.recent.map(parseDatabaseBackup),
+    last_successful_at: nullableString(root.last_successful_at),
+    stale: root.stale === null ? null : requireBoolean(root.stale, "database_backups_stale"),
+    message: nullableString(root.message),
   };
 }
 

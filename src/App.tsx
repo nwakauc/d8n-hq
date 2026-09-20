@@ -13,6 +13,7 @@ import ReportDetailPage from "./features/hq/pages/ReportDetailPage.tsx";
 import TrustSafetyPage from "./features/hq/pages/TrustSafetyPage.tsx";
 import UnavailableHqPage from "./features/hq/pages/UnavailableHqPage.tsx";
 import OperatorSecurityPage from "./features/hq/pages/OperatorSecurityPage.tsx";
+import DatabaseBackupsPage from "./features/hq/pages/DatabaseBackupsPage.tsx";
 
 function HqPlannedPage() {
   const location = useLocation();
@@ -55,7 +56,7 @@ export default function App() {
         <Route path="traces" element={<UnavailableHqPage path="/hq/traces" />} />
         <Route path="logs" element={<UnavailableHqPage path="/hq/logs" />} />
         <Route path="jobs" element={<UnavailableHqPage path="/hq/jobs" />} />
-        <Route path="database" element={<UnavailableHqPage path="/hq/database" />} />
+        <Route path="database" element={<DatabaseBackupsPage />} />
         <Route path="infrastructure" element={<UnavailableHqPage path="/hq/infrastructure" />} />
         <Route path="deployments" element={<UnavailableHqPage path="/hq/deployments" />} />
         <Route path="data-health" element={<UnavailableHqPage path="/hq/data-health" />} />

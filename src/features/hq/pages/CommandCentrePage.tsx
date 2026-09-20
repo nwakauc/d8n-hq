@@ -16,10 +16,13 @@ export default function CommandCentrePage() {
   const [timeRange, setTimeRange] = useState<HqAnalyticsRange>("last_30d");
   const canAnalytics = operatorHasCapability(operator, "hq.analytics.read");
   const canAlerts = canReadSecurityAlerts(operator);
+  const canSystem = operatorHasCapability(operator, "hq.system.read");
+  const canManageBackups = operatorHasCapability(operator, "hq.backups.manage");
 
   const { load, data, partialErrors } = useCommandCentreData({
     canAnalytics,
     canAlerts,
+    canSystem,
     refreshNonce,
     timeRange,
   });
@@ -38,6 +41,7 @@ export default function CommandCentrePage() {
         data={data}
         partialErrors={partialErrors}
         canAnalytics={canAnalytics}
+        canManageBackups={canManageBackups}
         onRefresh={onRefresh}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}

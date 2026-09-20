@@ -587,7 +587,8 @@ export type HqCapability =
   | "admin.brand_operations.manage"
   | "hq.system.read"
   | "hq.analytics.read"
-  | "hq.security_alerts.read";
+  | "hq.security_alerts.read"
+  | "hq.backups.manage";
 
 export type HqOperatorRole =
   | "founder"
@@ -880,6 +881,33 @@ export type HqRegistrationTrendResponse = {
   window: string;
   definition: string;
   brands: HqRegistrationTrendBrand[];
+};
+
+export type HqDatabaseBackupStatus = "available" | "stale" | "partial" | "not_configured" | "error";
+
+export type HqDatabaseBackup = {
+  key: string;
+  database: "primary" | "queue";
+  brand: string;
+  schedule?: string;
+  uploaded_at: string;
+  size_bytes: number | null;
+  checksum: string | null;
+};
+
+export type HqDatabaseBackupsResponse = {
+  status: HqDatabaseBackupStatus;
+  generated_at: string;
+  bucket: string | null;
+  retention_count: number | null;
+  latest: {
+    primary: HqDatabaseBackup | null;
+    queue: HqDatabaseBackup | null;
+  };
+  recent: HqDatabaseBackup[];
+  last_successful_at: string | null;
+  stale: boolean | null;
+  message: string | null;
 };
 
 /** Bounded, brand-scoped activation funnel from product-intelligence. */

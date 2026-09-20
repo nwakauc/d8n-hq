@@ -7,6 +7,7 @@ import {
   parseAnalyticsOverview,
   parseCommandCentreBrands,
   parseCommandCentreHealth,
+  parseDatabaseBackups,
   parseAuthAttemptList,
   parseCurrentOperatorResponse,
   parseDiscoveryDiagnostic,
@@ -41,6 +42,7 @@ import type {
   HqAnalyticsOverview,
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
+  HqDatabaseBackupsResponse,
   HqAuthAttemptList,
   HqBanProfileBody,
   HqCurrentOperator,
@@ -274,6 +276,16 @@ export async function fetchHqAnalyticsOverview(): Promise<HqAnalyticsOverview> {
 export async function fetchCommandCentreHealth(): Promise<HqCommandCentreHealth> {
   const data = await apiRequest("/api/v1/hq/command_centre/health");
   return parseCommandCentreHealth(data);
+}
+
+export async function fetchHqDatabaseBackups(): Promise<HqDatabaseBackupsResponse> {
+  const data = await apiRequest("/api/v1/hq/backups");
+  return parseDatabaseBackups(data);
+}
+
+export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupsResponse> {
+  const data = await apiRequest("/api/v1/hq/backups", { method: "POST" });
+  return parseDatabaseBackups(data);
 }
 
 export async function fetchCommandCentreBrands(): Promise<HqCommandCentreBrandsResponse> {

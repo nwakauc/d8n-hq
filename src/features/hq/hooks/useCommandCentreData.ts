@@ -5,6 +5,7 @@ import {
   fetchCommandCentreRegistrationTrends,
   fetchD8nVersion,
   fetchHqAnalyticsOverview,
+  fetchHqDatabaseBackups,
   fetchHqProductFunnel,
   fetchHqProductTrends,
   fetchHqSecurityAlerts,
@@ -14,6 +15,7 @@ import type {
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
   HqAnalyticsOverview,
+  HqDatabaseBackupsResponse,
   HqRegistrationTrendResponse,
   HqProductFunnel,
   HqProductTrends,
@@ -32,6 +34,7 @@ export type CommandCentreData = {
   funnel: HqProductFunnel | null;
   analytics: HqAnalyticsOverview | null;
   productTrends: HqProductTrends | null;
+  backups: HqDatabaseBackupsResponse | null;
   healthError: string | null;
   brandsError: string | null;
   alertsError: string | null;
@@ -40,6 +43,7 @@ export type CommandCentreData = {
   funnelError: string | null;
   analyticsError: string | null;
   productTrendsError: string | null;
+  backupsError: string | null;
 };
 
 const EMPTY_DATA: CommandCentreData = {
@@ -51,6 +55,7 @@ const EMPTY_DATA: CommandCentreData = {
   funnel: null,
   analytics: null,
   productTrends: null,
+  backups: null,
   healthError: null,
   brandsError: null,
   alertsError: null,
@@ -59,16 +64,19 @@ const EMPTY_DATA: CommandCentreData = {
   funnelError: null,
   analyticsError: null,
   productTrendsError: null,
+  backupsError: null,
 };
 
 export function useCommandCentreData({
   canAnalytics,
   canAlerts,
+  canSystem,
   timeRange = "last_30d",
   refreshNonce = 0,
 }: {
   canAnalytics: boolean;
   canAlerts: boolean;
+  canSystem: boolean;
   timeRange?: string;
   refreshNonce?: number;
 }) {
@@ -152,6 +160,17 @@ export function useCommandCentreData({
           }),
       );
     }
+    if (canSystem) {
+      tasks.push(
+        fetchHqDatabaseBackups()
+          .then((backups) => {
+            next.backups = backups;
+          })
+          .catch((error) => {
+            next.backupsError = hqErrorMessage(error);
+          }),
+      );
+    }
     tasks.push(
       fetchD8nVersion()
         .then((version) => {
@@ -171,7 +190,7 @@ export function useCommandCentreData({
     return () => {
       cancelled = true;
     };
-  }, [canAlerts, canAnalytics, refreshNonce, timeRange]);
+  }, [canAlerts, canAnalytics, canSystem, refreshNonce, timeRange]);
 
   const partialErrors = [
     data.healthError,
@@ -182,6 +201,7 @@ export function useCommandCentreData({
     data.funnelError,
     data.analyticsError,
     data.productTrendsError,
+    data.backupsError,
   ].filter((message): message is string => Boolean(message));
 
   return {

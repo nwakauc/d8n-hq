@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bell } from "lucide-react";
 import { HqSiteLink } from "./HqSiteLink.tsx";
 import { FounderModeToggle } from "./founder/FounderModeToggle.tsx";
 import { useHqBrand } from "./useHqBrand.ts";
@@ -44,6 +45,12 @@ export function BrandSelector() {
       {brands.map((brand) => {
         const isActive = brand.slug === activeBrand;
         const needsSignIn = !signedInBrands.includes(brand.slug);
+        const description = {
+          all: "D8N Platform",
+          date9ja: "Marriage focused",
+          dateza: "South Africa",
+          hookus: "Global Casual",
+        }[brand.slug] ?? "D8N brand";
         return (
           <button
             key={brand.slug}
@@ -54,7 +61,7 @@ export function BrandSelector() {
             onClick={() => selectBrand(brand.slug)}
             title={needsSignIn ? `${brand.label} — sign in required` : brand.label}
           >
-            <span className="hq-brand-pill__label">{brand.label}</span>
+            <span className="hq-brand-pill__copy"><span className="hq-brand-pill__label">{brand.label}</span><small>{description}</small></span>
             {needsSignIn ? <span className="hq-brand-pill__flag" aria-hidden="true" /> : null}
           </button>
         );
@@ -68,6 +75,14 @@ export function GlobalSearchTrigger({ onOpen }: { onOpen: () => void }) {
     <button type="button" className="hq-control hq-control--button" onClick={onOpen}>
       <span>Search D8N</span>
       <kbd>⌘K</kbd>
+    </button>
+  );
+}
+
+export function NotificationsTrigger() {
+  return (
+    <button type="button" className="hq-header-icon" aria-label="Notifications">
+      <Bell size={16} aria-hidden="true" />
     </button>
   );
 }
@@ -191,6 +206,7 @@ export function HqHeader({
         <HqSiteLink variant="header" />
         <BrandSelector />
         <GlobalSearchTrigger onOpen={onOpenSearch} />
+        <NotificationsTrigger />
         <OperatorIdentity />
       </div>
     </header>

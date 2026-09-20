@@ -29,12 +29,14 @@ import {
   FounderSystemHealth,
 } from "./FounderReferencePanels.tsx";
 import "./founder.css";
+import { DatabaseBackupCard } from "../components/DatabaseBackupCard.tsx";
 
 export function FounderOverview({
   load,
   data,
   partialErrors,
   canAnalytics,
+  canManageBackups,
   onRefresh,
   timeRange,
   onTimeRangeChange,
@@ -43,6 +45,7 @@ export function FounderOverview({
   data: CommandCentreData;
   partialErrors: string[];
   canAnalytics: boolean;
+  canManageBackups: boolean;
   onRefresh: () => void;
   timeRange: HqAnalyticsRange;
   onTimeRangeChange: (range: HqAnalyticsRange) => void;
@@ -163,14 +166,17 @@ export function FounderOverview({
           </div>
 
           <div className="founder-dashboard__row">
-            <div className="founder-col-4">
+            <div className="founder-col-3">
               <FounderDevicesAndPlatforms />
             </div>
-            <div className="founder-col-4">
+            <div className="founder-col-3">
               <FounderNotificationHealth />
             </div>
-            <div className="founder-col-4">
+            <div className="founder-col-3">
               <FounderSystemHealth version={data.version} />
+            </div>
+            <div className="founder-col-3">
+              <DatabaseBackupCard data={data.backups} error={data.backupsError} canManage={canManageBackups} />
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CircleAlert,
   ClipboardCheck,
+  Database,
   Eye,
   Heart,
   HeartHandshake,
@@ -37,6 +38,7 @@ export type FounderIconName =
   | "image"
   | "search"
   | "rocket"
+  | "database"
   | "info";
 
 const ICONS: Record<FounderIconName, LucideIcon> = {
@@ -56,6 +58,7 @@ const ICONS: Record<FounderIconName, LucideIcon> = {
   image: Image,
   search: Search,
   rocket: Rocket,
+  database: Database,
   info: Info,
 };
 
