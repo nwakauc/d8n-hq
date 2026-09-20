@@ -374,3 +374,64 @@ The highest-value evidence-backed slice is:
 7. Port Date9ja deletions only after confirming the canonical D8N deletion source and historical coverage.
 
 This order preserves existing functionality, exposes backend value already present, and avoids building dashboards around unsupported or misleading data.
+
+## 13. Accepted Command Centre operating model — 20 September 2026
+
+The Command Centre is not a collection of analytics cards. It is D8N's live operator cockpit. The top-level experience must answer six questions, with every signal leading to a cohort, evidence, and a permitted action:
+
+| Question | Command Centre signals | Destination for investigation |
+|---|---|---|
+| **People** — are people coming, staying and returning? | registrations, activation, active windows, retention, dormancy, reactivation, deletions, demographics, geography | Members, Registrations, Retention, Deletion Insights, Geography |
+| **Marketplace** — are they finding one another? | discovery, exposure, likes, passes, reciprocal pools, matches, conversations, zero-result sessions and friction | Discovery, Matching, Conversations, Liquidity & Pools, Funnels |
+| **Safety** — are people safe? | reports, blocks, moderation workload, RealMe, Trust Score, scam signals and enforcement | Reports, Moderation Queue, Photos, Videos, RealMe, Safety Audit |
+| **Product** — is the experience working? | onboarding/publication funnel, product usage, device/version concentration, notification delivery | Product Usage, Devices & Versions, Notifications, Feature Flags |
+| **System** — is D8N technically healthy? | errors, API/database/jobs/media/deployment/provider status and data health | Errors, Logs, Events, Jobs, Infrastructure, Deployments |
+| **Business** — are we building something sustainable? | acquisition quality, retention, paid conversion, memberships, payments and revenue | Acquisition, Campaigns, Retention, Memberships & Revenue |
+
+### Required Command Centre modules
+
+- **Today at D8N:** a compact since-midnight scorecard for registrations, onboarding completions, publications, likes, passes, matches, conversations, messages, reports, blocks, unmatches, RealMe, deletions, moderation actions, authentication failures, and errors—only where a canonical source exists.
+- **Engagement funnel:** registration → onboarding → published → discovery exposure → like sent/received → match → conversation → return. This is a first-class leakage view, not scattered cards.
+- **Daily registrations, active users and deletions:** real historical, brand-comparable series with date/member drill-downs.
+- **Marketplace Pulse and marketplace pools:** evidence-backed friction, reciprocal supply/demand, city/location views, and cohort drill-downs.
+- **Retention:** D1/D7/D30 where canonical cohort data exists, returning/dormant/reactivated users and deletion/churn context. Legacy retention estimates must be preserved as legacy/approximate until rebuilt from an authoritative definition.
+- **Geography and product quality:** countries/cities, marketplace health by location, device/platform, OS/browser/app version, signup source and error concentration by version.
+- **Conversation and communications health:** matches without first message, conversations started, reply/mutual-reply rates, response time, early abandonment, blocks/reports following conversations, plus push/email/SMS attempted/delivered/failed metrics.
+- **What changed?:** explainable period-over-period movements distinct from urgent attention signals.
+- **Operator workload:** pending photos/videos/RealMe, reports awaiting decision, support/feedback, unresolved incidents, oldest queue item and SLA age.
+- **Live Activity, Recent Errors, Recent Reports, System Health and Needs Your Attention:** unified operational signals, each with a direct investigation route.
+
+### Accepted final navigation
+
+| Group | Routes |
+|---|---|
+| Command | Command Centre, Live / Events, Attention, Security Alerts, Incidents |
+| People | Members, Deleted Accounts, Customers & Support, Feedback |
+| Products | All Products, Date9ja, DateZA, HookUs, Feature Flags, Product Settings |
+| Marketplace | Discovery, Matching, Conversations, Liquidity & Pools, Funnels, Marketplace Insights, Community |
+| Trust & Safety | Reports, Moderation Queue, Photos, Videos, RealMe, Trust Score, Scam/Fraud Intelligence, Enforcement, Safety Audit |
+| Growth | Registrations, Acquisition, Campaigns, Influencers / Referrals, Retention, Win-back, Deletion Insights |
+| Business | Memberships, Revenue, Payments, Goals / Targets |
+| Intelligence | Analytics, Cohorts, Demographics, Geography, Product Usage, Devices / Versions, D8N Insights |
+| Engineering | Errors, Logs, Events, Jobs / Queues, Deployments, Services, Database, Infrastructure, Notifications, Third-Party Services, Data Health |
+| Administration | Team & Access, Brands, Audit Log, Settings |
+
+### Legacy Date9ja mapping
+
+| Legacy area | D8N HQ destination |
+|---|---|
+| Dashboard / Founder | Command Centre and Intelligence |
+| Marketplace | Marketplace, Funnels, Liquidity & Pools |
+| Acquisition | Growth → Registrations, Acquisition, Campaigns |
+| Users | People → Members and Member 360 |
+| Deletions | People → Deleted Accounts; Growth → Deletion Insights |
+| Photos, Videos, Selfies | Trust & Safety → moderation queues and RealMe |
+| Feedback | People → Feedback / Customers & Support |
+| Reports | Trust & Safety → Reports and Enforcement |
+| Community | Marketplace → Community |
+| Messages | Marketplace → Conversations; authorized member investigation |
+| Logs, Errors | Engineering → Logs, Errors, Events |
+| SMS | Engineering → Notifications / Third-Party Services |
+| Careers | Excluded from core D8N HQ unless still required for company administration |
+
+The supplied Super HQ reference image is the visual hierarchy guide: compact global controls, an immediate KPI strip, evidence-backed charts/funnels, a right-side live activity rail, a visible attention section, and dense but readable lower operational rows. It is a guide, not a source of sample values. Production HQ must only render real data or an explicit unavailable/instrumentation state.
