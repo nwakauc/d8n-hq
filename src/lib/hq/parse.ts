@@ -1104,6 +1104,7 @@ const HQ_CAPABILITIES = new Set<string>([
   "hq.system.read",
   "hq.analytics.read",
   "hq.security_alerts.read",
+  "hq.backups.manage",
 ]);
 
 const HQ_OPERATOR_ROLES = new Set<string>([

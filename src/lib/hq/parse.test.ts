@@ -85,6 +85,7 @@ describe("parseCurrentOperatorResponse", () => {
           "hq.member.sensitive_read",
           "admin.profile_publication.manage",
           "hq.system.read",
+          "hq.backups.manage",
         ],
         grantable_roles: ["moderator"],
         brand_assignments: [{
@@ -103,6 +104,7 @@ describe("parseCurrentOperatorResponse", () => {
 
     expect(response.operator.role).toBe("founder");
     expect(response.operator.effective_capabilities).toContain("admin.profile_publication.manage");
+    expect(response.operator.effective_capabilities).toContain("hq.backups.manage");
   });
 });
 
