@@ -197,6 +197,10 @@ export default function Member360Page() {
     result: null,
   });
   const [diagNonce, setDiagNonce] = useState(0);
+  const [publicationReason, setPublicationReason] = useState("");
+  const [publicationOpen, setPublicationOpen] = useState(false);
+  const [publicationPending, setPublicationPending] = useState(false);
+  const [publicationError, setPublicationError] = useState<string | null>(null);
   const [diagnostic, setDiagnostic] = useState<{
     key: string;
     result:
@@ -272,6 +276,22 @@ export default function Member360Page() {
     if (!lookup) return;
     void loadMember(lookup).then((result) => setLoad({ key: lookup, result }));
   }, [lookup]);
+
+  async function publishMember() {
+    if (!member?.sections.profile.exists || !publicationReason.trim() || publicationPending) return;
+    setPublicationPending(true);
+    setPublicationError(null);
+    try {
+      await publishHqMemberProfile(member.sections.profile.public_id, publicationReason);
+      setPublicationReason("");
+      setPublicationOpen(false);
+      reloadMember();
+    } catch (error: unknown) {
+      setPublicationError(hqErrorMessage(error));
+    } finally {
+      setPublicationPending(false);
+    }
+  }
 
   const productOpen = Boolean(member && openSections.has("product"));
   const diagnosticStatus =
@@ -543,19 +563,30 @@ export default function Member360Page() {
                 {canManagePublication && member.sections.profile.discovery_state !== "visible" && member.sections.profile.discovery_state !== "moderator_hidden" ? (
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
                     <span className="hq-card__subtitle">Publication: {member.sections.profile.discovery_state}</span>
-                    <button
-                      type="button"
-                      className="hq-btn hq-btn--ghost hq-btn--sm"
-                      onClick={() => {
-                        const reason = window.prompt("Publication reason (required and audited)");
-                        if (!reason?.trim()) return;
-                        void publishHqMemberProfile(member.sections.profile.exists ? member.sections.profile.public_id : "", reason)
-                          .then(reloadMember)
-                          .catch((error) => window.alert(hqErrorMessage(error)));
-                      }}
-                    >
-                      Make discoverable
+                    <button type="button" className="hq-btn hq-btn--ghost hq-btn--sm" onClick={() => { setPublicationOpen((open) => !open); setPublicationError(null); }}>
+                      {publicationOpen ? "Cancel publication" : "Make discoverable"}
                     </button>
+                    {publicationOpen ? (
+                      <div role="group" aria-label="Publish profile" style={{ display: "grid", gap: 8, flexBasis: "100%", maxWidth: 560 }}>
+                        <label htmlFor="publication-reason">Audit reason</label>
+                        <textarea
+                          id="publication-reason"
+                          value={publicationReason}
+                          maxLength={500}
+                          rows={3}
+                          placeholder="Explain why this profile is ready to be discoverable."
+                          onChange={(event) => setPublicationReason(event.target.value)}
+                          disabled={publicationPending}
+                        />
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <button type="button" className="hq-btn hq-btn--primary hq-btn--sm" onClick={() => void publishMember()} disabled={publicationPending || !publicationReason.trim()}>
+                            {publicationPending ? "Publishing…" : "Confirm publication"}
+                          </button>
+                          <span className="hq-card__subtitle">{publicationReason.length}/500</span>
+                        </div>
+                        {publicationError ? <p role="alert" className="hq-form-error">{publicationError}</p> : null}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
                 {member.sections.profile.configured_fields ? (
