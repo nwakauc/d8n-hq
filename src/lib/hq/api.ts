@@ -12,6 +12,7 @@ import {
   parseHqNotificationHealth,
   parseHqNotificationDeliveries,
   parseHqSystemHealth,
+  parseHqAttention,
   parseAuthAttemptList,
   parseCurrentOperatorResponse,
   parseDiscoveryDiagnostic,
@@ -84,6 +85,7 @@ import type {
   HqTrustSafetyEnforcementParams,
   HqTrustSafetyOverview,
   HqSystemHealthResponse,
+  HqAttention,
   HqUpdateReportBody,
 } from "./types.ts";
 
@@ -309,6 +311,11 @@ export async function fetchHqNotificationDeliveries(window = "24h"): Promise<HqN
 export async function fetchHqSystemHealth(): Promise<HqSystemHealthResponse> {
   const data = await apiRequest("/api/v1/hq/system_health");
   return parseHqSystemHealth(data);
+}
+
+export async function fetchHqAttention(): Promise<HqAttention> {
+  const data = await apiRequest("/api/v1/hq/attention");
+  return parseHqAttention(data);
 }
 
 export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupsResponse> {

@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { canAccessNavItem } from "../../lib/hq/capabilities.ts";
 import type { HqCurrentOperator } from "../../lib/hq/types.ts";
 import { isNavGroupExpanded, setNavGroupExpanded } from "./hqNavExpansion.ts";
+import { useHqAttention } from "./HqAttentionContext.tsx";
 import {
   HQ_NAV,
   isHqNavItemActive,
@@ -42,11 +43,13 @@ function NavGroup({
   pathname,
   search,
   onNavigate,
+  attention,
 }: {
   group: HqNavGroup;
   pathname: string;
   search: string;
   onNavigate?: () => void;
+  attention: ReturnType<typeof useHqAttention>["attention"];
 }) {
   const activeChild = groupHasActiveChild(group, pathname, search);
   const [toggleExpanded, setToggleExpanded] = useState(() =>
@@ -74,6 +77,7 @@ function NavGroup({
         onClick={toggle}
       >
         <span className="hq-nav-accordion__label">{group.label}</span>
+        {group.id === "trust" && attention && attention.total > 0 ? <span className="hq-nav-group__badge">{attention.total}</span> : null}
         <ChevronRight size={14} className="hq-nav-accordion__chevron" aria-hidden="true" />
       </button>
       <div id={panelId} className="hq-nav-accordion__panel" hidden={!expanded}>
@@ -81,6 +85,13 @@ function NavGroup({
           {group.items.map((item) => {
             const active = isHqNavItemActive(item, pathname, search);
             const soon = isNavItemSoon(item);
+            const count = item.id === "trust-realme"
+              ? attention?.identity.realme ?? 0
+              : item.id === "trust-photos"
+                ? attention?.moderation.profile_photos ?? 0
+                : item.id === "trust-reports"
+                  ? attention?.safety.reports ?? 0
+                  : 0;
             return (
               <NavLink
                 key={item.id}
@@ -97,6 +108,7 @@ function NavGroup({
                 aria-current={active ? "page" : undefined}
               >
                 <span className="hq-nav-link__label">{item.label}</span>
+                {count > 0 ? <span className="hq-nav-link__badge" aria-label={`${count} requires attention`}>{count}</span> : null}
                 {soon ? (
                   <span className="hq-nav-link__meta" title="Coming soon">
                     <Lock size={11} aria-hidden="true" />
@@ -124,6 +136,7 @@ export function HqSidebarNav({
   const search = location.search;
 
   const groups = useMemo(() => accessibleGroups(operator), [operator]);
+  const { attention } = useHqAttention();
 
   return (
     <nav className="hq-sidebar__nav" aria-label="HQ sections">
@@ -134,6 +147,7 @@ export function HqSidebarNav({
           pathname={pathname}
           search={search}
           onNavigate={onNavigate}
+          attention={attention}
         />
       ))}
     </nav>

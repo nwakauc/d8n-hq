@@ -282,6 +282,98 @@ body {
   color: var(--hq-text-faint);
 }
 
+.hq-nav-link__badge,
+.hq-nav-group__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hq-nav-group__badge { margin-left: auto; margin-right: 8px; }
+
+.hq-header-attention {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--hq-border);
+  border-radius: 9px;
+  background: var(--hq-surface);
+  color: var(--hq-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hq-header-attention-wrap { position: relative; }
+.hq-attention-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; width: 260px; padding: 12px; border: 1px solid var(--hq-border); border-radius: 12px; background: var(--hq-surface); box-shadow: 0 12px 30px rgba(15, 23, 42, .12); }
+.hq-attention-popover__title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+.hq-attention-popover__title span { color: var(--hq-text-faint); font-size: 10px; }
+.hq-attention-popover a { display: flex; justify-content: space-between; gap: 10px; padding: 9px 7px; border-radius: 7px; color: var(--hq-text); font-size: 12px; text-decoration: none; }
+.hq-attention-popover a:hover { background: var(--hq-accent-soft); }
+.hq-attention-popover a strong { color: #be123c; }
+.hq-attention-popover p { margin: 0; padding: 8px 0; color: var(--hq-text-muted); font-size: 11px; }
+.hq-attention-popover__all { width: 100%; margin-top: 7px; padding: 8px 0 0; border: 0; border-top: 1px solid var(--hq-border); background: none; color: var(--hq-accent); text-align: left; font: inherit; font-size: 11px; cursor: pointer; }
+
+.hq-header-attention strong {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 10px;
+}
+
+.hq-realme-workspace { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 16px; margin-top: 18px; }
+.hq-realme-queue { border-right: 1px solid var(--hq-border); padding-right: 12px; }
+.hq-realme-queue__heading, .hq-realme-section-title { color: var(--hq-text-muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 9px; }
+.hq-realme-queue__item { display: flex; gap: 9px; align-items: center; width: 100%; padding: 9px 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--hq-text); text-align: left; cursor: pointer; }
+.hq-realme-queue__item:hover, .hq-realme-queue__item.is-active { background: var(--hq-accent-soft); border-color: var(--hq-accent-border); }
+.hq-realme-queue__item span:last-child { min-width: 0; display: grid; gap: 3px; }
+.hq-realme-queue__item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.hq-realme-queue__item small { color: var(--hq-text-faint); font-size: 10px; }
+.hq-realme-queue__avatar, .hq-realme-member-avatar { display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; background: var(--hq-accent-soft); color: var(--hq-accent); font-weight: 700; }
+.hq-realme-queue__avatar { width: 28px; height: 28px; font-size: 11px; }
+.hq-realme-review { min-width: 0; }
+.hq-realme-review__columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.hq-realme-panel, .hq-realme-history { border: 1px solid var(--hq-border); border-radius: 12px; padding: 14px; background: var(--hq-surface); }
+.hq-realme-panel__title { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+.hq-realme-member-head { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.hq-realme-member-avatar { width: 42px; height: 42px; font-size: 16px; }
+.hq-realme-member-head h3 { margin: 0; font-size: 17px; }
+.hq-realme-member-head p { margin: 3px 0 0; color: var(--hq-text-muted); font-size: 11px; }
+.hq-realme-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 14px; margin: 0 0 16px; }
+.hq-realme-facts div { min-width: 0; }
+.hq-realme-facts dt { color: var(--hq-text-faint); font-size: 10px; }
+.hq-realme-facts dd { margin: 2px 0 0; color: var(--hq-text); font-size: 11px; overflow-wrap: anywhere; }
+.hq-realme-photo-grid { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 13px; }
+.hq-realme-photo-grid button, .hq-realme-evidence button { padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.hq-realme-photo-grid img { width: 62px; height: 76px; object-fit: cover; border-radius: 7px; border: 1px solid var(--hq-border); }
+.hq-realme-evidence { min-height: 280px; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: #f3f4f6; margin-bottom: 14px; }
+.hq-realme-evidence img, .hq-realme-evidence video { width: 100%; max-height: 390px; object-fit: contain; }
+.hq-realme-evidence > span { color: var(--hq-text-faint); font-size: 12px; }
+.hq-realme-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hq-realme-history { margin-top: 16px; }
+.hq-realme-history__row { display: grid; grid-template-columns: 135px 1fr auto minmax(0, 2fr); align-items: center; gap: 9px; padding: 8px 0; border-top: 1px solid var(--hq-border); font-size: 11px; }
+.hq-realme-history__row small { color: var(--hq-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hq-realme-empty { display: grid; gap: 5px; margin-top: 18px; padding: 28px; border: 1px dashed var(--hq-border); border-radius: 10px; text-align: center; color: var(--hq-text-muted); }
+.hq-realme-empty strong { color: var(--hq-text); }
+.hq-lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 5vw; background: rgba(15, 23, 42, .72); cursor: zoom-out; }
+.hq-lightbox img { max-width: 92vw; max-height: 90vh; object-fit: contain; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.28); }
+@media (max-width: 900px) { .hq-realme-workspace, .hq-realme-review__columns { grid-template-columns: 1fr; } .hq-realme-queue { border-right: 0; border-bottom: 1px solid var(--hq-border); padding: 0 0 10px; display: flex; overflow-x: auto; } .hq-realme-queue__heading { display: none; } .hq-realme-queue__item { min-width: 180px; } }
+
 .hq-sidebar__footer {
   display: flex;
   flex-direction: column;

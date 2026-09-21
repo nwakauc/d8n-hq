@@ -812,12 +812,67 @@ export type HqRealmeEvidence = {
   url_expires_in: number;
 };
 
+export type HqRealmeReviewPhoto = {
+  id: string;
+  position: number;
+  status: "approved";
+  visibility: "hidden" | "visible";
+  processing_state: "pending" | "processing" | "ready" | "failed";
+  url: string | null;
+  url_expires_in: number;
+};
+
+export type HqRealmeReviewMember = {
+  user_id: number;
+  public_id?: string;
+  display_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  looking_for?: string[] | null;
+  location?: string | null;
+  country_code?: string | null;
+  city?: string | null;
+  brand?: string;
+  account_status: string;
+  membership_status?: string | null;
+  membership_since?: string | null;
+  joined_at?: string | null;
+  last_active_at?: string | null;
+  profile_status?: string | null;
+  profile_visibility?: string | null;
+  profile_completeness?: number | null;
+  email_verified?: boolean;
+  realme_status?: { check_type: HqRealmeCheckType; status: string; submitted_at: string | null; reviewed_at: string | null }[];
+  trust_score?: number | null;
+};
+
+export type HqRealmeReviewHistoryEntry = {
+  id: number;
+  check_type: HqRealmeCheckType;
+  status: string;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  evidence: HqRealmeEvidence | null;
+};
+
+export type HqRealmeReviewContext = {
+  member: HqRealmeReviewMember;
+  profile_photos: HqRealmeReviewPhoto[];
+  evidence: HqRealmeEvidence | null;
+  history: HqRealmeReviewHistoryEntry[];
+  member_360_lookup: string | null;
+};
+
 export type HqRealmeQueueEntry = {
   id: number;
   user_id: number;
   check_type: HqRealmeCheckType;
   submitted_at: string | null;
   evidence: HqRealmeEvidence | null;
+  review_context: HqRealmeReviewContext | null;
 };
 
 export type HqRealmeQueue = {
@@ -835,6 +890,20 @@ export type HqRealmeModeration = {
 export type HqRealmeModerationResult = {
   transitioned: boolean;
   assertion: HqRealmeModeration;
+};
+
+export type HqAttentionBucket = {
+  total: number;
+  [key: string]: number;
+};
+
+export type HqAttention = {
+  brand: string;
+  generated_at: string;
+  total: number;
+  identity: HqAttentionBucket;
+  moderation: HqAttentionBucket;
+  safety: HqAttentionBucket;
 };
 
 /** POST /admin/profiles/:id/identity_corrections -- gender / interested_in. */

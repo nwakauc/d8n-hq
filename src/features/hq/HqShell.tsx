@@ -7,6 +7,7 @@ import { HqModeProvider } from "./HqModeContext.tsx";
 import { useHqMode } from "./useHqMode.ts";
 import { GlobalSearchPalette, HqHeader } from "./HqHeader.tsx";
 import { HqSidebar } from "./HqSidebar.tsx";
+import { HqAttentionProvider } from "./HqAttentionContext.tsx";
 import "./hq.css";
 import "./hq-founder-shell.css";
 
@@ -95,9 +96,11 @@ export default function HqShell() {
   return (
     <HqBrandProvider>
       <HqMfaGate>
-        <HqModeProvider>
-          <HqShellInner />
-        </HqModeProvider>
+        <HqAttentionProvider>
+          <HqModeProvider>
+            <HqShellInner />
+          </HqModeProvider>
+        </HqAttentionProvider>
       </HqMfaGate>
     </HqBrandProvider>
   );

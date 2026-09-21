@@ -7,6 +7,8 @@ import type {
   HqAdminReport,
   HqAdminReportList,
   HqAnalyticsOverview,
+  HqAttention,
+  HqAttentionBucket,
   HqAttentionSignal,
   HqCommandCentreBrandEntry,
   HqCommandCentreBrandsResponse,
@@ -55,6 +57,7 @@ import type {
   HqRealmeModerationResult,
   HqRealmeQueue,
   HqRealmeQueueEntry,
+  HqRealmeReviewContext,
   HqRecentAuthAttempt,
   HqRecentReport,
   HqRecentSecurityEvent,
@@ -1503,6 +1506,58 @@ function parseRealmeEvidence(value: unknown): HqRealmeEvidence | null {
   };
 }
 
+function parseRealmeReviewContext(value: unknown): HqRealmeReviewContext | null {
+  if (value === null || value === undefined) return null;
+  const root = requireRecord(value, "realme_review_context");
+  const member = requireRecord(root.member, "realme_review_member");
+  const photos = Array.isArray(root.profile_photos) ? root.profile_photos : [];
+  const history = Array.isArray(root.history) ? root.history : [];
+  return {
+    member: {
+      user_id: requireNumber(member.user_id, "realme_member_user_id"),
+      public_id: member.public_id === undefined ? undefined : requireString(member.public_id, "realme_member_public_id"),
+      display_name: member.display_name === undefined ? undefined : nullableString(member.display_name),
+      first_name: member.first_name === undefined ? undefined : nullableString(member.first_name),
+      last_name: member.last_name === undefined ? undefined : nullableString(member.last_name),
+      age: member.age === undefined ? undefined : nullableNumber(member.age, "realme_member_age"),
+      gender: member.gender === undefined ? undefined : nullableString(member.gender),
+      looking_for: Array.isArray(member.looking_for) ? member.looking_for.map((item) => requireString(item, "realme_member_looking_for")) : null,
+      location: member.location === undefined ? undefined : nullableString(member.location),
+      country_code: member.country_code === undefined ? undefined : nullableString(member.country_code),
+      city: member.city === undefined ? undefined : nullableString(member.city),
+      brand: member.brand === undefined ? undefined : requireString(member.brand, "realme_member_brand"),
+      account_status: requireString(member.account_status, "realme_member_account_status"),
+      membership_status: member.membership_status === undefined ? undefined : nullableString(member.membership_status),
+      membership_since: member.membership_since === undefined ? undefined : nullableString(member.membership_since),
+      joined_at: member.joined_at === undefined ? undefined : nullableString(member.joined_at),
+      last_active_at: member.last_active_at === undefined ? undefined : nullableString(member.last_active_at),
+      profile_status: member.profile_status === undefined ? undefined : nullableString(member.profile_status),
+      profile_visibility: member.profile_visibility === undefined ? undefined : nullableString(member.profile_visibility),
+      profile_completeness: member.profile_completeness === undefined ? undefined : nullableNumber(member.profile_completeness, "realme_member_profile_completeness"),
+      email_verified: member.email_verified === undefined ? undefined : requireBoolean(member.email_verified, "realme_member_email_verified"),
+      realme_status: Array.isArray(member.realme_status) ? member.realme_status.map((entry) => {
+        const row = requireRecord(entry, "realme_member_status");
+        return { check_type: parseRealmeCheckType(row.check_type), status: requireString(row.status, "realme_member_status_value"), submitted_at: nullableString(row.submitted_at), reviewed_at: nullableString(row.reviewed_at) };
+      }) : undefined,
+      trust_score: member.trust_score === undefined ? undefined : nullableNumber(member.trust_score, "realme_member_trust_score"),
+    },
+    profile_photos: photos.map((photo) => {
+      const row = requireRecord(photo, "realme_review_photo");
+      const status = requireString(row.status, "realme_review_photo_status");
+      if (status !== "approved") throw new ApiError(502, undefined, "invalid_hq_realme_review_photo_status");
+      const processing = requireString(row.processing_state, "realme_review_photo_processing_state");
+      if (!["pending", "processing", "ready", "failed"].includes(processing)) throw new ApiError(502, undefined, "invalid_hq_realme_review_photo_processing_state");
+      return { id: requireString(row.id, "realme_review_photo_id"), position: requireNumber(row.position, "realme_review_photo_position"), status: "approved", visibility: requireString(row.visibility, "realme_review_photo_visibility") as "hidden" | "visible", processing_state: processing as "pending" | "processing" | "ready" | "failed", url: row.url === null ? null : requireString(row.url, "realme_review_photo_url"), url_expires_in: requireNumber(row.url_expires_in, "realme_review_photo_expiry") };
+    }),
+    evidence: parseRealmeEvidence(root.evidence),
+    history: history.map((entry) => {
+      const row = requireRecord(entry, "realme_review_history");
+      return { id: requireNumber(row.id, "realme_history_id"), check_type: parseRealmeCheckType(row.check_type), status: requireString(row.status, "realme_history_status"), submitted_at: nullableString(row.submitted_at), reviewed_at: nullableString(row.reviewed_at), review_note: nullableString(row.review_note), evidence: parseRealmeEvidence(row.evidence) };
+    }),
+    member_360_lookup: root.member_360_lookup === null ? null : requireString(root.member_360_lookup, "realme_member_360_lookup"),
+  };
+}
+
 function parseRealmeQueueEntry(value: unknown): HqRealmeQueueEntry {
   const row = requireRecord(value, "realme_queue_entry");
   return {
@@ -1511,6 +1566,28 @@ function parseRealmeQueueEntry(value: unknown): HqRealmeQueueEntry {
     check_type: parseRealmeCheckType(row.check_type),
     submitted_at: nullableString(row.submitted_at),
     evidence: parseRealmeEvidence(row.evidence),
+    review_context: parseRealmeReviewContext(row.review_context),
+  };
+}
+
+function parseAttentionBucket(value: unknown, label: string): HqAttentionBucket {
+  const row = requireRecord(value, label);
+  const result: HqAttentionBucket = { total: requireNumber(row.total, `${label}_total`) };
+  for (const [key, item] of Object.entries(row)) {
+    if (key !== "total") result[key] = requireNumber(item, `${label}_${key}`);
+  }
+  return result;
+}
+
+export function parseHqAttention(data: unknown): HqAttention {
+  const root = requireRecord(data, "attention");
+  return {
+    brand: requireString(root.brand, "attention_brand"),
+    generated_at: requireString(root.generated_at, "attention_generated_at"),
+    total: requireNumber(root.total, "attention_total"),
+    identity: parseAttentionBucket(root.identity, "attention_identity"),
+    moderation: parseAttentionBucket(root.moderation, "attention_moderation"),
+    safety: parseAttentionBucket(root.safety, "attention_safety"),
   };
 }
 

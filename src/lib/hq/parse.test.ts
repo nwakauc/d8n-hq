@@ -14,9 +14,24 @@ import {
   parseHqDevices,
   parseHqNotificationHealth,
   parseHqSystemHealth,
+  parseHqAttention,
 } from "./parse.ts";
 
 describe("operational HQ contracts", () => {
+  it("keeps attention badges limited to actionable child counts", () => {
+    const result = parseHqAttention({
+      brand: "date9ja",
+      generated_at: "2026-09-21T10:00:00Z",
+      total: 6,
+      identity: { total: 2, realme: 2 },
+      moderation: { total: 3, profile_photos: 3 },
+      safety: { total: 1, reports: 1 },
+    });
+    expect(result.total).toBe(6);
+    expect(result.identity.realme).toBe(2);
+    expect(result.moderation.profile_photos).toBe(3);
+  });
+
   it("keeps device versions and active counts evidence-backed", () => {
     const result = parseHqDevices({
       window: "24h",

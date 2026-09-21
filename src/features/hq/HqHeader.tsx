@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { HqSiteLink } from "./HqSiteLink.tsx";
 import { FounderModeToggle } from "./founder/FounderModeToggle.tsx";
 import { useHqBrand } from "./useHqBrand.ts";
 import { useAuth } from "../auth/useAuth.ts";
 import { formatOperatorRole } from "../../lib/hq/capabilities.ts";
+import { useHqAttention } from "./HqAttentionContext.tsx";
 
 /**
  * Real brand switcher: each brand this app is configured for (VITE_HQ_BRANDS)
@@ -80,10 +81,28 @@ export function GlobalSearchTrigger({ onOpen }: { onOpen: () => void }) {
 }
 
 export function NotificationsTrigger() {
+  const navigate = useNavigate();
+  const { attention } = useHqAttention();
+  const [open, setOpen] = useState(false);
+  const total = attention?.total ?? 0;
+  const items = [
+    { label: "RealMe verification", count: attention?.identity.realme ?? 0, path: "/hq/moderation/realme" },
+    { label: "Profile photos", count: attention?.moderation.profile_photos ?? 0, path: "/hq/moderation/photos" },
+    { label: "Reports", count: attention?.safety.reports ?? 0, path: "/hq/trust-safety?tab=queue" },
+  ].filter((item) => item.count > 0);
   return (
-    <button type="button" className="hq-header-icon" aria-label="Notifications">
-      <Bell size={16} aria-hidden="true" />
-    </button>
+    <div className="hq-header-attention-wrap">
+      <button type="button" className="hq-header-attention" aria-label={`Needs attention: ${total}`} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <Bell size={16} aria-hidden="true" />
+        <span>Needs attention</span>
+        {total > 0 ? <strong>{total}</strong> : null}
+      </button>
+      {open ? <div className="hq-attention-popover" role="dialog" aria-label="Needs attention summary">
+        <div className="hq-attention-popover__title"><strong>Needs attention</strong><span>{total} actionable</span></div>
+        {items.length ? items.map((item) => <Link key={item.label} to={item.path} onClick={() => setOpen(false)}><span>{item.label}</span><strong>{item.count}</strong></Link>) : <p>All caught up. No actionable work is waiting.</p>}
+        {items.length ? <button type="button" className="hq-attention-popover__all" onClick={() => { setOpen(false); navigate("/hq/trust-safety"); }}>View Trust &amp; Safety →</button> : null}
+      </div> : null}
+    </div>
   );
 }
 
