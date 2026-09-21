@@ -764,6 +764,11 @@ export default function Member360Page() {
                 { label: "Conversations", value: member.sections.product.conversations_count },
                 { label: "Blocks given", value: member.sections.product.blocks_given },
                 { label: "Blocks received", value: member.sections.product.blocks_received },
+                { label: "Private albums", value: member.sections.product.private_media.albums },
+                { label: "Active private grants", value: member.sections.product.private_media.active_grants },
+                { label: "Private photos", value: member.sections.product.private_media.photos },
+                { label: "Private videos", value: member.sections.product.private_media.videos },
+                { label: "Private-media reports", value: member.sections.product.private_media.reports },
               ]}
             />
             <DataTable

@@ -202,6 +202,13 @@ export type HqProductSection = {
   blocks_received: number;
   passes_given?: number;
   passes_received?: number;
+  private_media: {
+    albums: number;
+    active_grants: number;
+    photos: number;
+    videos: number;
+    reports: number;
+  };
   pass_history?: { direction: string; counterpart_profile_id: string | null; counterpart_display_name: string | null; created_at: string }[];
   match_history?: { id?: string; direction: string; counterpart_profile_id: string | null; counterpart_display_name: string | null; created_at: string }[];
 };
@@ -479,7 +486,19 @@ export type HqReportTargetType =
   | "message"
   | "profile_media"
   | "hook"
-  | "conversation";
+  | "conversation"
+  | "private_album"
+  | "private_album_item";
+
+export type HqPrivateMediaAccess = {
+  item: {
+    id: string;
+    media_kind: "image" | "video";
+    view_url: string;
+    poster_url: string | null;
+    expires_in: number;
+  };
+};
 
 export type HqAdminReportParty = {
   id: string;
@@ -755,6 +774,7 @@ export type HqCapability =
   | "hq.member.security_read"
   | "hq.discovery_diagnostics.read"
   | "hq.trust_safety.read"
+  | "hq.private_media.sensitive_read"
   | "admin.reports.read"
   | "admin.reports.moderate"
   | "admin.enforcements.read"

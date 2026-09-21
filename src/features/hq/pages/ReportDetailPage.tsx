@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../../../lib/api/errors.ts";
 import {
   fetchAdminReport,
+  accessPrivateAlbumItem,
   hqErrorMessage,
   banAdminProfile,
   reinstateAdminProfile,
@@ -21,6 +22,7 @@ import {
 } from "../components/HqPrimitives.tsx";
 import { useHqOperator } from "../useHqOperator.ts";
 import { opsCan } from "../../ops/opsCapabilities.ts";
+import { operatorHasCapability } from "../../../lib/hq/capabilities.ts";
 
 type LoadResult =
   | { status: "ready"; report: HqAdminReport }
@@ -140,9 +142,24 @@ export default function ReportDetailPage({ routePrefix = "hq" }: ReportDetailPag
   const [banReason, setBanReason] = useState("");
   const [banNote, setBanNote] = useState("");
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [privateMediaReason, setPrivateMediaReason] = useState("");
+  const [privateMedia, setPrivateMedia] = useState<{ view_url: string; poster_url: string | null; media_kind: "image" | "video" } | null>(null);
 
   const requestKey = `${validId ? reportId : "invalid"}:${reloadNonce}`;
   const refresh = useCallback(() => setReloadNonce((n) => n + 1), []);
+
+  async function reviewPrivateMedia() {
+    const itemId = typeof report?.evidence.item_public_id === "string" ? report.evidence.item_public_id : null;
+    if (!report || !itemId || !privateMediaReason.trim() || action.status === "pending") return;
+    setAction({ status: "pending" });
+    try {
+      const response = await accessPrivateAlbumItem(itemId, { report_id: report.id, reason: privateMediaReason.trim() });
+      setPrivateMedia(response.item);
+      setAction({ status: "idle" });
+    } catch (caught) {
+      setAction({ status: "error", message: hqErrorMessage(caught) });
+    }
+  }
 
   useEffect(() => {
     if (!validId) {
@@ -392,6 +409,29 @@ export default function ReportDetailPage({ routePrefix = "hq" }: ReportDetailPag
           )}
         </MetricCard>
       </div>
+
+      {report.target_type === "private_album_item" ? (
+        <MetricCard title="Sensitive private-media review">
+          {!operatorHasCapability(operator, "hq.private_media.sensitive_read") ? (
+            <p className="hq-card__subtitle">Your operator access does not permit sensitive private-media review.</p>
+          ) : (
+            <>
+              <p className="hq-card__subtitle">Opening evidence is exceptional, requires an investigation reason, and creates an immutable sensitive-access audit event.</p>
+              <label className="hq-field">
+                <span>Review reason (required)</span>
+                <textarea value={privateMediaReason} onChange={(event) => setPrivateMediaReason(event.target.value)} rows={3} maxLength={500} />
+              </label>
+              <button type="button" className="hq-btn hq-btn--primary" disabled={!privateMediaReason.trim() || action.status === "pending"} onClick={() => void reviewPrivateMedia()}>
+                {action.status === "pending" ? "Authorizing…" : "Review sensitive evidence"}
+              </button>
+              {privateMedia ? <div style={{ marginTop: 16 }}>
+                {privateMedia.media_kind === "video" ? <video controls preload="metadata" src={privateMedia.view_url} poster={privateMedia.poster_url ?? undefined} style={{ maxWidth: "100%", maxHeight: 520 }} /> : <img src={privateMedia.view_url} alt="Reported private media evidence" style={{ maxWidth: "100%", maxHeight: 520, objectFit: "contain" }} />}
+                <p className="hq-card__subtitle">Authorized URL expires in 60 seconds. Reloading requires a new audited access.</p>
+              </div> : null}
+            </>
+          )}
+        </MetricCard>
+      ) : null}
 
       <MetricCard title="Moderation">
         {!canModerateReports ? (

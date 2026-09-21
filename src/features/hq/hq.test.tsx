@@ -902,6 +902,18 @@ describe("D8N HQ Phase 1 integration", () => {
     expect(await screen.findByText(/Needs your attention/i)).toBeInTheDocument();
   });
 
+  it("compares daily founder cards with the previous calendar day", async () => {
+    window.localStorage.setItem("hq:experience-mode:v1", "founder");
+    vi.mocked(fetch).mockImplementation(withOperator(() => undefined));
+    renderAt("/hq");
+
+    await screen.findAllByText(/New today/i);
+    expect(screen.getByLabelText("Up 50 percent versus the previous day")).toBeInTheDocument();
+    expect(screen.getByLabelText("Up 33 percent versus the previous day")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Down 50 percent versus the previous day").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("vs previous day").length).toBeGreaterThanOrEqual(5);
+  });
+
   it("switches between founder and ops modes", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem("hq:experience-mode:v1", "founder");

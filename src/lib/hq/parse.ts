@@ -378,6 +378,7 @@ function parseProfile(value: unknown): HqProfileSection {
 
 function parseProduct(value: unknown): HqProductSection {
   const row = requireRecord(value, "product");
+  const privateMedia = requireRecord(row.private_media, "private_media");
   if (!Array.isArray(row.recent_conversations)) {
     throw new ApiError(502, undefined, "invalid_hq_conversations");
   }
@@ -413,6 +414,13 @@ function parseProduct(value: unknown): HqProductSection {
     blocks_received: requireNumber(row.blocks_received, "blocks_received"),
     passes_given: typeof row.passes_given === "number" ? row.passes_given : undefined,
     passes_received: typeof row.passes_received === "number" ? row.passes_received : undefined,
+    private_media: {
+      albums: requireNumber(privateMedia.albums, "private_media_albums"),
+      active_grants: requireNumber(privateMedia.active_grants, "private_media_active_grants"),
+      photos: requireNumber(privateMedia.photos, "private_media_photos"),
+      videos: requireNumber(privateMedia.videos, "private_media_videos"),
+      reports: requireNumber(privateMedia.reports, "private_media_reports"),
+    },
     pass_history: Array.isArray(row.pass_history) ? row.pass_history.map((raw) => { const item = requireRecord(raw, "pass_history"); return { direction: requireString(item.direction, "pass_direction"), counterpart_profile_id: nullableString(item.counterpart_profile_id), counterpart_display_name: nullableString(item.counterpart_display_name), created_at: requireString(item.created_at, "pass_created") }; }) : undefined,
     match_history: Array.isArray(row.match_history) ? row.match_history.map((raw) => { const item = requireRecord(raw, "match_history"); return { id: typeof item.id === "string" ? item.id : undefined, direction: requireString(item.direction, "match_direction"), counterpart_profile_id: nullableString(item.counterpart_profile_id), counterpart_display_name: nullableString(item.counterpart_display_name), created_at: requireString(item.created_at, "match_created") }; }) : undefined,
   };
@@ -1376,6 +1384,7 @@ const HQ_CAPABILITIES = new Set<string>([
   "hq.member.security_read",
   "hq.discovery_diagnostics.read",
   "hq.trust_safety.read",
+  "hq.private_media.sensitive_read",
   "admin.reports.read",
   "admin.reports.moderate",
   "admin.enforcements.read",

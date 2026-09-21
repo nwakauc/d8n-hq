@@ -62,6 +62,7 @@ import type {
   HqIdentityCorrection,
   HqIdentityCorrectionField,
   HqMember360,
+  HqPrivateMediaAccess,
   HqMfaChallengeResult,
   HqMfaConfirmation,
   HqMfaEnrollmentResponse,
@@ -422,6 +423,17 @@ export async function fetchAdminReports(
 export async function fetchAdminReport(id: number): Promise<HqAdminReport> {
   const data = await apiRequest(`/api/v1/admin/reports/${id}`);
   return parseAdminReport(data);
+}
+
+export async function accessPrivateAlbumItem(
+  itemId: string,
+  body: { report_id: number; reason: string },
+): Promise<HqPrivateMediaAccess> {
+  return (await apiRequest(`/api/v1/hq/private_media/items/${encodeURIComponent(itemId)}/access`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })) as HqPrivateMediaAccess;
 }
 
 export async function updateAdminReport(

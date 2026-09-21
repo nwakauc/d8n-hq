@@ -169,6 +169,7 @@ export function commandCentreHealthFixture(overrides: Record<string, unknown> = 
       ),
       memberships_new: windowedMetric("memberships.new", "Kept BrandMembership rows created in the window.", {
         today: 3,
+        yesterday: 2,
         last_7d: 12,
         last_30d: 45,
       }),
@@ -177,7 +178,7 @@ export function commandCentreHealthFixture(overrides: Record<string, unknown> = 
       active_users: windowedMetric(
         "users.active",
         "Distinct users with a Session last_used_at in the window for the brand.",
-        { today: 8, last_7d: 120, last_30d: 400 },
+        { today: 8, yesterday: 6, last_7d: 120, last_30d: 400 },
       ),
       online_now: metricAvailable(
         "activity.online_now",
@@ -207,18 +208,20 @@ export function commandCentreHealthFixture(overrides: Record<string, unknown> = 
     marketplace: {
       likes_created: windowedMetric("marketplace.likes_created", "Kept Like rows created in the window.", {
         today: 10,
+        yesterday: 8,
         last_7d: 80,
         last_30d: 300,
       }),
       matches_created: windowedMetric("marketplace.matches_created", "Kept Match rows created in the window.", {
         today: 2,
+        yesterday: 4,
         last_7d: 15,
         last_30d: 60,
       }),
       conversations_created: windowedMetric(
         "marketplace.conversations_created",
         "Kept Conversation rows created in the window.",
-        { today: 1, last_7d: 8, last_30d: 30 },
+        { today: 1, yesterday: 2, last_7d: 8, last_30d: 30 },
       ),
       zero_discovery_allocations: {
         yesterday: metricAvailable(

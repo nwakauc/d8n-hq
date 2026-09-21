@@ -28,7 +28,43 @@ const DELETIONS_UNAVAILABLE: HqMetricValue = {
   limitations: ["D8N does not yet expose a canonical cross-brand deletion event."],
 };
 
-const HERO_SPECS = [
+type HeroMetricSpec = {
+  key: string;
+  label: string;
+  icon: FounderIconName;
+  tone: "blue" | "green" | "rose" | "amber";
+  pick: (health: HqCommandCentreHealth) => HqMetricValue;
+  previous?: (health: HqCommandCentreHealth) => HqMetricValue | undefined;
+  context: (health: HqCommandCentreHealth) => string;
+  windowKey: string | null;
+  to: (health: HqCommandCentreHealth) => string | null;
+};
+
+function percentageChange(current: HqMetricValue, previous: HqMetricValue | undefined): number | null {
+  if (current.status !== "available" || previous?.status !== "available") return null;
+  if (typeof current.value !== "number" || typeof previous.value !== "number") return null;
+  if (previous.value === 0) return current.value === 0 ? null : 100;
+  return Math.round(((current.value - previous.value) / previous.value) * 100);
+}
+
+function HeroMetricTrend({ current, previous }: { current: HqMetricValue; previous?: HqMetricValue }) {
+  const change = percentageChange(current, previous);
+  if (change === null) return null;
+
+  const direction = change >= 0 ? "up" : "down";
+  return (
+    <span
+      className={`founder-hero__trend founder-hero__trend--${direction}`}
+      title="Compared with the previous calendar day"
+      aria-label={`${change >= 0 ? "Up" : "Down"} ${Math.abs(change)} percent versus the previous day`}
+    >
+      {change >= 0 ? "↑" : "↓"} {Math.abs(change)}%
+      <small>vs previous day</small>
+    </span>
+  );
+}
+
+const HERO_SPECS: HeroMetricSpec[] = [
   {
     key: "members",
     label: "Total members",
@@ -45,6 +81,7 @@ const HERO_SPECS = [
     icon: "user-plus" as FounderIconName,
     tone: "green" as const,
     pick: (health: HqCommandCentreHealth) => health.audience.memberships_new.today,
+    previous: (health: HqCommandCentreHealth) => health.audience.memberships_new.yesterday,
     context: (health: HqCommandCentreHealth) => health.windows.today?.label ?? "Today",
     windowKey: "today",
     to: (health: HqCommandCentreHealth) =>
@@ -56,6 +93,7 @@ const HERO_SPECS = [
     icon: "activity" as FounderIconName,
     tone: "blue" as const,
     pick: (health: HqCommandCentreHealth) => health.activity.active_users.today,
+    previous: (health: HqCommandCentreHealth) => health.activity.active_users.yesterday,
     context: (health: HqCommandCentreHealth) => health.windows.today?.label ?? "Today",
     windowKey: "today",
     to: (health: HqCommandCentreHealth) =>
@@ -77,6 +115,7 @@ const HERO_SPECS = [
     icon: "heart" as FounderIconName,
     tone: "rose" as const,
     pick: (health: HqCommandCentreHealth) => health.marketplace.likes_created.today,
+    previous: (health: HqCommandCentreHealth) => health.marketplace.likes_created.yesterday,
     context: (health: HqCommandCentreHealth) => health.windows.today?.label ?? "Today",
     windowKey: "today",
     to: () => null,
@@ -87,6 +126,7 @@ const HERO_SPECS = [
     icon: "heart" as FounderIconName,
     tone: "rose" as const,
     pick: (health: HqCommandCentreHealth) => health.marketplace.matches_created.today,
+    previous: (health: HqCommandCentreHealth) => health.marketplace.matches_created.yesterday,
     context: (health: HqCommandCentreHealth) => health.windows.today?.label ?? "Today",
     windowKey: "today",
     to: () => null,
@@ -97,6 +137,7 @@ const HERO_SPECS = [
     icon: "message-circle" as FounderIconName,
     tone: "blue" as const,
     pick: (health: HqCommandCentreHealth) => health.marketplace.conversations_created.today,
+    previous: (health: HqCommandCentreHealth) => health.marketplace.conversations_created.yesterday,
     context: (health: HqCommandCentreHealth) => health.windows.today?.label ?? "Today",
     windowKey: "today",
     to: () => null,
@@ -139,6 +180,7 @@ export function FounderHeroMetrics({ health }: { health: HqCommandCentreHealth }
       {HERO_SPECS.map((spec) => {
         const metric = spec.pick(health);
         const presentation = presentMetric(metric);
+        const previousMetric = spec.previous?.(health);
         const windowLabel = spec.windowKey
           ? health.windows[spec.windowKey]?.label
           : undefined;
@@ -155,7 +197,10 @@ export function FounderHeroMetrics({ health }: { health: HqCommandCentreHealth }
                 <FounderMetricInfo metric={metric} label={spec.label} windowLabel={windowLabel} />
               </header>
             </div>
-            <FounderMetricValue presentation={presentation} large />
+            <div className="founder-hero__metric-line">
+              <FounderMetricValue presentation={presentation} large />
+              <HeroMetricTrend current={metric} previous={previousMetric} />
+            </div>
             <span className="founder-hero__context">{spec.context(health)}</span>
           </>
         );
