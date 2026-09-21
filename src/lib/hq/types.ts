@@ -359,10 +359,99 @@ export type HqDiscoveryStage = {
   candidate_count: number;
 };
 
+/** Only these four values are backend-defined; `null` covers historical/
+ * pre-feature rows that predate `deleted_reason` instrumentation. */
+export type HqDiscoveryDeletedReason =
+  | "user_withdrew"
+  | "user_undid"
+  | "superseded"
+  | "unmatched"
+  | null;
+
+export type HqDiscoveryInteractionProfile = {
+  id: string;
+  display_name: string | null;
+};
+
+export type HqDiscoveryInteractionEntry = {
+  profile: HqDiscoveryInteractionProfile;
+  active: boolean;
+  interacted_at: string | null;
+  deleted_reason: HqDiscoveryDeletedReason;
+};
+
+/** Inspectable member lists behind each exclusion category — unscoped, so
+ * both active and inactive (withdrawn/undone/unmatched) rows are included,
+ * each explicitly tagged via `active` + `deleted_reason`. */
+export type HqDiscoveryExclusionBreakdown = {
+  you_liked: HqDiscoveryInteractionEntry[];
+  passed: HqDiscoveryInteractionEntry[];
+  matched: HqDiscoveryInteractionEntry[];
+  blocked: HqDiscoveryInteractionEntry[];
+};
+
+export type HqDiscoveryIntroductionToday = {
+  configured: boolean;
+  /** What was actually allocated today — never a "seen"/"viewed" figure;
+   * D8N has no delivered/seen/opened instrumentation. */
+  allocated_count: number | null;
+  daily_limit: number | null;
+  finalized_at: string | null;
+};
+
+export type HqDiscoveryExploreToday = {
+  configured: boolean;
+  /** Live, on-demand count — Explore has no allocation ledger, so this is
+   * never a historical "returned today" figure, only what is available
+   * right now. */
+  available_count: number | null;
+};
+
+export type HqDiscoveryToday = {
+  introduction: HqDiscoveryIntroductionToday;
+  explore: HqDiscoveryExploreToday;
+};
+
 export type HqDiscoveryDiagnostic = {
   eligible: boolean;
   ineligibility_reason: string | null;
   stages: HqDiscoveryStage[];
+  /** Empty when the member is ineligible or discovery is not configured. */
+  exclusion_breakdown: Partial<HqDiscoveryExclusionBreakdown>;
+  today: HqDiscoveryToday | null;
+};
+
+export type HqDiscoveryHealthBucketLabel = "0" | "1-3" | "4-9" | "10+";
+export type HqDiscoveryHealthBuckets = Record<HqDiscoveryHealthBucketLabel, number>;
+
+export type HqDiscoveryHealthMarketSummary = {
+  member_count: number;
+  median_reciprocal_pool: number | null;
+  median_available_pool: number | null;
+  exhausted_member_count: number;
+};
+
+export type HqDiscoveryHealthLikelyEmptyMember = {
+  profile_id: string;
+  market: string;
+  reciprocal_pool: number;
+};
+
+/** GET /api/v1/hq/discovery_health — platform-wide discovery liquidity
+ * report for the operator's current brand (see Hq::Discovery::Health). */
+export type HqDiscoveryHealth = {
+  brand: string;
+  member_count: number;
+  introduction_configured: boolean;
+  explore_configured: boolean;
+  introduction_delivery_buckets: HqDiscoveryHealthBuckets;
+  explore_availability_buckets: HqDiscoveryHealthBuckets;
+  exhausted_member_count: number;
+  near_exhausted_member_count: number;
+  median_reciprocal_pool: number | null;
+  median_available_pool: number | null;
+  by_market: Record<string, HqDiscoveryHealthMarketSummary>;
+  likely_empty_discovery: HqDiscoveryHealthLikelyEmptyMember[];
 };
 
 export type HqHistoryParams = {
@@ -676,6 +765,8 @@ export type HqCapability =
   | "admin.enforcements.manage"
   | "admin.profile_photos.moderate"
   | "admin.realme_verifications.moderate"
+  | "admin.marketplace.read"
+  | "admin.marketplace.moderate"
   | "admin.identity_correction.manage"
   | "admin.discovery_restrictions.manage"
   | "admin.profile_publication.manage"

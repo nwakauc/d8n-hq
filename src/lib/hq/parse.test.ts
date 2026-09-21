@@ -161,6 +161,8 @@ describe("parseCurrentOperatorResponse", () => {
         effective_capabilities: [
           "hq.member.sensitive_read",
           "admin.profile_publication.manage",
+          "admin.marketplace.read",
+          "admin.marketplace.moderate",
           "hq.system.read",
           "hq.backups.manage",
         ],
@@ -168,7 +170,11 @@ describe("parseCurrentOperatorResponse", () => {
         brand_assignments: [{
           brand: "dateza",
           role: "founder",
-          effective_capabilities: ["admin.profile_publication.manage"],
+          effective_capabilities: [
+            "admin.profile_publication.manage",
+            "admin.marketplace.read",
+            "admin.marketplace.moderate",
+          ],
         }],
         mfa: {
           state: "active",
@@ -181,6 +187,8 @@ describe("parseCurrentOperatorResponse", () => {
 
     expect(response.operator.role).toBe("founder");
     expect(response.operator.effective_capabilities).toContain("admin.profile_publication.manage");
+    expect(response.operator.effective_capabilities).toContain("admin.marketplace.read");
+    expect(response.operator.effective_capabilities).toContain("admin.marketplace.moderate");
     expect(response.operator.effective_capabilities).toContain("hq.backups.manage");
   });
 });

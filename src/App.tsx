@@ -15,6 +15,7 @@ import UnavailableHqPage from "./features/hq/pages/UnavailableHqPage.tsx";
 import OperatorSecurityPage from "./features/hq/pages/OperatorSecurityPage.tsx";
 import DatabaseBackupsPage from "./features/hq/pages/DatabaseBackupsPage.tsx";
 import NotificationDeliveriesPage from "./features/hq/pages/NotificationDeliveriesPage.tsx";
+import DiscoveryHealthPage from "./features/hq/pages/DiscoveryHealthPage.tsx";
 
 function HqPlannedPage() {
   const location = useLocation();
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="growth" element={<UnavailableHqPage path="/hq/growth" />} />
         <Route path="product" element={<UnavailableHqPage path="/hq/product" />} />
         <Route path="marketplace" element={<UnavailableHqPage path="/hq/marketplace" />} />
+        <Route path="discovery-health" element={<DiscoveryHealthPage />} />
         <Route path="revenue" element={<UnavailableHqPage path="/hq/revenue" />} />
         <Route path="acquisition" element={<UnavailableHqPage path="/hq/acquisition" />} />
         <Route path="customers" element={<UnavailableHqPage path="/hq/customers" />} />

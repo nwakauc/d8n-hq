@@ -32,9 +32,17 @@ import type {
   HqAuthAttemptResult,
   HqCommsSection,
   HqDelivery,
+  HqDiscoveryDeletedReason,
   HqDiscoveryDiagnostic,
+  HqDiscoveryExclusionBreakdown,
+  HqDiscoveryHealth,
+  HqDiscoveryHealthBuckets,
+  HqDiscoveryHealthLikelyEmptyMember,
+  HqDiscoveryHealthMarketSummary,
+  HqDiscoveryInteractionEntry,
   HqDiscoveryStage,
   HqDiscoveryStageName,
+  HqDiscoveryToday,
   HqEnforcementList,
   HqGenderSplit,
   HqIdentitySection,
@@ -1002,6 +1010,74 @@ function parseDiscoveryStage(value: unknown): HqDiscoveryStage {
   };
 }
 
+function parseDiscoveryDeletedReason(value: unknown): HqDiscoveryDeletedReason {
+  if (
+    value === null ||
+    value === "user_withdrew" ||
+    value === "user_undid" ||
+    value === "superseded" ||
+    value === "unmatched"
+  ) {
+    return value;
+  }
+  throw new ApiError(502, undefined, "invalid_hq_discovery_deleted_reason");
+}
+
+function parseDiscoveryInteractionEntry(value: unknown): HqDiscoveryInteractionEntry {
+  const row = requireRecord(value, "discovery_interaction_entry");
+  const profile = requireRecord(row.profile, "discovery_interaction_profile");
+  return {
+    profile: {
+      id: requireString(profile.id, "discovery_interaction_profile_id"),
+      display_name: nullableString(profile.display_name),
+    },
+    active: requireBoolean(row.active, "discovery_interaction_active"),
+    interacted_at: nullableString(row.interacted_at),
+    deleted_reason: parseDiscoveryDeletedReason(row.deleted_reason ?? null),
+  };
+}
+
+function parseDiscoveryExclusionBreakdown(value: unknown): Partial<HqDiscoveryExclusionBreakdown> {
+  if (value === undefined) return {};
+  const row = requireRecord(value, "discovery_exclusion_breakdown");
+  const parseList = (entries: unknown): HqDiscoveryInteractionEntry[] | undefined => {
+    if (entries === undefined) return undefined;
+    if (!Array.isArray(entries)) {
+      throw new ApiError(502, undefined, "invalid_hq_discovery_exclusion_list");
+    }
+    return entries.map(parseDiscoveryInteractionEntry);
+  };
+  const breakdown: Partial<HqDiscoveryExclusionBreakdown> = {};
+  const youLiked = parseList(row.you_liked);
+  const passed = parseList(row.passed);
+  const matched = parseList(row.matched);
+  const blocked = parseList(row.blocked);
+  if (youLiked) breakdown.you_liked = youLiked;
+  if (passed) breakdown.passed = passed;
+  if (matched) breakdown.matched = matched;
+  if (blocked) breakdown.blocked = blocked;
+  return breakdown;
+}
+
+function parseDiscoveryToday(value: unknown): HqDiscoveryToday | null {
+  if (value === undefined || value === null) return null;
+  const row = requireRecord(value, "discovery_today");
+  const introduction = requireRecord(row.introduction, "discovery_today_introduction");
+  const explore = requireRecord(row.explore, "discovery_today_explore");
+  return {
+    introduction: {
+      configured: requireBoolean(introduction.configured, "discovery_today_introduction_configured"),
+      allocated_count: nullableNumber(introduction.allocated_count, "discovery_today_allocated_count"),
+      daily_limit: nullableNumber(introduction.daily_limit, "discovery_today_daily_limit"),
+      finalized_at: nullableString(introduction.finalized_at),
+    },
+    explore: {
+      configured: requireBoolean(explore.configured, "discovery_today_explore_configured"),
+      available_count: nullableNumber(explore.available_count, "discovery_today_available_count"),
+    },
+  };
+}
+
 export function parseDiscoveryDiagnostic(data: unknown): HqDiscoveryDiagnostic {
   const root = requireRecord(data, "discovery_diagnostic");
   if (!Array.isArray(root.stages)) {
@@ -1011,6 +1087,68 @@ export function parseDiscoveryDiagnostic(data: unknown): HqDiscoveryDiagnostic {
     eligible: requireBoolean(root.eligible, "eligible"),
     ineligibility_reason: nullableString(root.ineligibility_reason),
     stages: root.stages.map(parseDiscoveryStage),
+    exclusion_breakdown: parseDiscoveryExclusionBreakdown(root.exclusion_breakdown),
+    today: parseDiscoveryToday(root.today),
+  };
+}
+
+function parseDiscoveryHealthBuckets(value: unknown, label: string): HqDiscoveryHealthBuckets {
+  const row = requireRecord(value, label);
+  const bucketNumber = (key: string) => requireNumber(row[key], `${label}_${key}`);
+  return {
+    "0": bucketNumber("0"),
+    "1-3": bucketNumber("1-3"),
+    "4-9": bucketNumber("4-9"),
+    "10+": bucketNumber("10+"),
+  };
+}
+
+function parseDiscoveryHealthMarketSummary(value: unknown): HqDiscoveryHealthMarketSummary {
+  const row = requireRecord(value, "discovery_health_market_summary");
+  return {
+    member_count: requireNumber(row.member_count, "discovery_health_market_member_count"),
+    median_reciprocal_pool: nullableNumber(row.median_reciprocal_pool, "discovery_health_market_median_reciprocal_pool"),
+    median_available_pool: nullableNumber(row.median_available_pool, "discovery_health_market_median_available_pool"),
+    exhausted_member_count: requireNumber(row.exhausted_member_count, "discovery_health_market_exhausted_member_count"),
+  };
+}
+
+function parseDiscoveryHealthLikelyEmptyMember(value: unknown): HqDiscoveryHealthLikelyEmptyMember {
+  const row = requireRecord(value, "discovery_health_likely_empty_member");
+  return {
+    profile_id: requireString(row.profile_id, "discovery_health_likely_empty_profile_id"),
+    market: requireString(row.market, "discovery_health_likely_empty_market"),
+    reciprocal_pool: requireNumber(row.reciprocal_pool, "discovery_health_likely_empty_reciprocal_pool"),
+  };
+}
+
+export function parseDiscoveryHealth(data: unknown): HqDiscoveryHealth {
+  const root = requireRecord(data, "discovery_health");
+  if (!Array.isArray(root.likely_empty_discovery)) {
+    throw new ApiError(502, undefined, "invalid_hq_discovery_health_likely_empty_discovery");
+  }
+  const byMarket = requireRecord(root.by_market, "discovery_health_by_market");
+  return {
+    brand: requireString(root.brand, "discovery_health_brand"),
+    member_count: requireNumber(root.member_count, "discovery_health_member_count"),
+    introduction_configured: requireBoolean(root.introduction_configured, "discovery_health_introduction_configured"),
+    explore_configured: requireBoolean(root.explore_configured, "discovery_health_explore_configured"),
+    introduction_delivery_buckets: parseDiscoveryHealthBuckets(
+      root.introduction_delivery_buckets,
+      "discovery_health_introduction_delivery_buckets",
+    ),
+    explore_availability_buckets: parseDiscoveryHealthBuckets(
+      root.explore_availability_buckets,
+      "discovery_health_explore_availability_buckets",
+    ),
+    exhausted_member_count: requireNumber(root.exhausted_member_count, "discovery_health_exhausted_member_count"),
+    near_exhausted_member_count: requireNumber(root.near_exhausted_member_count, "discovery_health_near_exhausted_member_count"),
+    median_reciprocal_pool: nullableNumber(root.median_reciprocal_pool, "discovery_health_median_reciprocal_pool"),
+    median_available_pool: nullableNumber(root.median_available_pool, "discovery_health_median_available_pool"),
+    by_market: Object.fromEntries(
+      Object.entries(byMarket).map(([market, summary]) => [market, parseDiscoveryHealthMarketSummary(summary)]),
+    ),
+    likely_empty_discovery: root.likely_empty_discovery.map(parseDiscoveryHealthLikelyEmptyMember),
   };
 }
 
@@ -1247,6 +1385,8 @@ const HQ_CAPABILITIES = new Set<string>([
   "admin.enforcements.manage",
   "admin.profile_photos.moderate",
   "admin.realme_verifications.moderate",
+  "admin.marketplace.read",
+  "admin.marketplace.moderate",
   "admin.trust_adjustments.manage",
   "admin.trust_adjustments.reverse",
   "admin.discovery_restrictions.manage",

@@ -26,6 +26,8 @@ import {
   CollapsibleSection,
   DataTable,
   DiagnosticBreakdown,
+  DiscoveryExclusionBreakdownPanel,
+  DiscoveryTodayPanel,
   StateBanner,
   StatGroup,
   StatusBadge,
@@ -812,12 +814,26 @@ export default function Member360Page() {
                 <StateBanner tone="error" title="Diagnostic failed" body={diagnostic.result.message} />
               ) : null}
               {diagnosticStatus === "ready" && diagnostic.result?.status === "ready" ? (
-                <DiagnosticBreakdown
-                  title="Discovery funnel"
-                  eligible={diagnostic.result.data.eligible}
-                  ineligibilityReason={diagnostic.result.data.ineligibility_reason}
-                  stages={diagnostic.result.data.stages}
-                />
+                <>
+                  <DiagnosticBreakdown
+                    title="Discovery funnel"
+                    eligible={diagnostic.result.data.eligible}
+                    ineligibilityReason={diagnostic.result.data.ineligibility_reason}
+                    stages={diagnostic.result.data.stages}
+                  />
+                  {diagnostic.result.data.eligible ? (
+                    <>
+                      <div style={{ marginTop: 14 }}>
+                        <h3 className="hq-card__title">Today</h3>
+                        <DiscoveryTodayPanel today={diagnostic.result.data.today} />
+                      </div>
+                      <div style={{ marginTop: 14 }}>
+                        <h3 className="hq-card__title">Exclusion breakdown</h3>
+                        <DiscoveryExclusionBreakdownPanel breakdown={diagnostic.result.data.exclusion_breakdown} />
+                      </div>
+                    </>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </CollapsibleSection>

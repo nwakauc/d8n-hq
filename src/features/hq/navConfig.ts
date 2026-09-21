@@ -79,6 +79,7 @@ export const HQ_NAV: HqNavEntry[] = [
         soon({ id: "product", label: "Product Intelligence", path: "/hq/product" }),
         soon({ id: "marketplace", label: "Marketplace Health", path: "/hq/marketplace" }),
         soon({ id: "growth", label: "Growth & Marketing", path: "/hq/growth" }),
+        live({ id: "discovery-health", label: "Discovery Health", path: "/hq/discovery-health" }),
       ],
     },
   },

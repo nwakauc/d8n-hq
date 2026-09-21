@@ -614,6 +614,61 @@ describe("D8N HQ Phase 1 integration", () => {
     expect(screen.getByText("Ultimately remaining")).toBeInTheDocument();
   });
 
+  it("renders the exclusion breakdown and today's allocation/availability using allocated/returned vocabulary", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = urlOf(input);
+      if (url.includes("/api/v1/me")) return meOk();
+      if (url.includes("/api/v1/hq/operator")) return operatorOk();
+      if (url.includes("/discovery_diagnostic")) {
+        return json(200, {
+          eligible: true,
+          ineligibility_reason: null,
+          stages: [
+            { stage: "visible_active_profiles", description: "Visible active profiles", candidate_count: 100 },
+            {
+              stage: "reciprocal_gender_age_distance",
+              description: "After reciprocal gender, age, and distance filters",
+              candidate_count: 40,
+            },
+            { stage: "final_eligible_candidates", description: "After exclusions", candidate_count: 1 },
+          ],
+          exclusion_breakdown: {
+            you_liked: [
+              {
+                profile: { id: "p-1", display_name: "Withdrawn Liker" },
+                active: false,
+                interacted_at: "2026-08-01T00:00:00Z",
+                deleted_reason: "user_withdrew",
+              },
+            ],
+            passed: [],
+            matched: [],
+            blocked: [],
+          },
+          today: {
+            introduction: { configured: true, allocated_count: 3, daily_limit: 10, finalized_at: "2026-09-21T06:00:00Z" },
+            explore: { configured: true, available_count: 7 },
+          },
+        });
+      }
+      if (url.includes("/api/v1/hq/members/")) return member360Ok();
+      return json(404, { error: "not_found" });
+    });
+
+    renderAt(`/hq/members/${PROFILE_ID}?sections=product`);
+    expect(await screen.findByText("Allocated today")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getAllByText(/Returned right now/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/\bseen\b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bviewed\b/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /you liked/i }));
+    expect(await screen.findByText("Withdrawn Liker")).toBeInTheDocument();
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+    expect(screen.getByText("user withdrew")).toBeInTheDocument();
+  });
+
   it("preserves section URL state", async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = urlOf(input);

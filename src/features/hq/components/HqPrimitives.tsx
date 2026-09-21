@@ -1,4 +1,9 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import type {
+  HqDiscoveryExclusionBreakdown,
+  HqDiscoveryInteractionEntry,
+  HqDiscoveryToday,
+} from "../../../lib/hq/types.ts";
 
 type StatusTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
@@ -292,6 +297,168 @@ export function CollapsibleSection({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function formatWhenShort(value: string | null | undefined): string {
+  if (!value) return "—";
+  return value.replace("T", " ").replace(/\.\d+Z$/, "Z");
+}
+
+const EXCLUSION_CATEGORY_LABELS: Record<keyof HqDiscoveryExclusionBreakdown, string> = {
+  you_liked: "You Liked",
+  passed: "Passed",
+  matched: "Active Match",
+  blocked: "Blocked",
+};
+
+const EXCLUSION_CATEGORY_ORDER: Array<keyof HqDiscoveryExclusionBreakdown> = [
+  "you_liked",
+  "passed",
+  "matched",
+  "blocked",
+];
+
+function deletedReasonLabel(reason: HqDiscoveryInteractionEntry["deleted_reason"]): string {
+  if (!reason) return "—";
+  return reason.replace(/_/g, " ");
+}
+
+/** Inspectable member lists behind each Discovery exclusion category (You
+ * Liked / Passed / Active Match / Blocked), each entry tagged active/
+ * inactive with a timestamp and, where present, `deleted_reason` -- the
+ * operator requirement is to inspect *who*, not just a count. Collapsed by
+ * default; each category expands independently. */
+export function DiscoveryExclusionBreakdownPanel({
+  breakdown,
+}: {
+  breakdown: Partial<HqDiscoveryExclusionBreakdown>;
+}) {
+  const [openCategory, setOpenCategory] = useState<keyof HqDiscoveryExclusionBreakdown | null>(null);
+  const categories = EXCLUSION_CATEGORY_ORDER.filter((key) => breakdown[key] !== undefined);
+
+  if (categories.length === 0) {
+    return (
+      <UnavailableState
+        badge="NO DATA"
+        title="No exclusion breakdown returned"
+        body="The diagnostic succeeded but returned no exclusion categories."
+      />
+    );
+  }
+
+  return (
+    <div className="hq-diagnostic" aria-label="Discovery exclusion breakdown">
+      <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
+        Every member excluded from this member&apos;s reciprocal-eligible pool, by category. Includes
+        inactive rows (withdrawn Likes, undone Passes, unmatched Matches) so an operator can see why the
+        pool is smaller than it looks — not just the live count.
+      </p>
+      <div style={{ display: "grid", gap: 8 }}>
+        {categories.map((key) => {
+          const entries = breakdown[key] ?? [];
+          const activeCount = entries.filter((entry) => entry.active).length;
+          const open = openCategory === key;
+          return (
+            <div key={key} className="hq-card" style={{ padding: 10 }}>
+              <button
+                type="button"
+                className="hq-btn hq-btn--ghost hq-btn--sm"
+                aria-expanded={open}
+                onClick={() => setOpenCategory(open ? null : key)}
+                style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <span>{EXCLUSION_CATEGORY_LABELS[key]}</span>
+                <span className="hq-card__subtitle">
+                  {activeCount} active / {entries.length} total {open ? "▾" : "▸"}
+                </span>
+              </button>
+              {open ? (
+                <div style={{ marginTop: 8 }}>
+                  <DataTable
+                    columns={[
+                      { key: "member", header: "Member" },
+                      { key: "status", header: "Status" },
+                      { key: "interacted_at", header: "Interacted" },
+                      { key: "deleted_reason", header: "Deleted reason" },
+                    ]}
+                    rows={entries.map((entry) => ({
+                      member: entry.profile.display_name ?? entry.profile.id,
+                      status: entry.active ? (
+                        <StatusBadge tone="success">Active</StatusBadge>
+                      ) : (
+                        <StatusBadge tone="neutral">Inactive</StatusBadge>
+                      ),
+                      interacted_at: formatWhenShort(entry.interacted_at),
+                      deleted_reason: deletedReasonLabel(entry.deleted_reason),
+                    }))}
+                    empty={`No ${EXCLUSION_CATEGORY_LABELS[key].toLowerCase()} entries.`}
+                  />
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Today's real Introduction allocation and live Explore availability.
+ * Vocabulary is deliberately restricted to "allocated" and "returned" --
+ * D8N has no seen/viewed/opened instrumentation, so the UI must never
+ * imply it does. */
+export function DiscoveryTodayPanel({ today }: { today: HqDiscoveryToday | null }) {
+  if (!today) {
+    return (
+      <UnavailableState
+        badge="NOT AVAILABLE"
+        title="Today's allocation state is not available"
+        body="The member is not currently eligible, or discovery is not configured for this brand."
+      />
+    );
+  }
+
+  const { introduction, explore } = today;
+
+  return (
+    <div className="hq-diagnostic" aria-label="Today's Discovery state">
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+        <div className="hq-card" style={{ padding: 10 }}>
+          <p className="hq-card__title" style={{ margin: 0 }}>Introduction</p>
+          {introduction.configured ? (
+            <StatGroup
+              items={[
+                { label: "Allocated today", value: introduction.allocated_count ?? 0 },
+                { label: "Daily limit", value: introduction.daily_limit ?? "—" },
+                { label: "Finalized at", value: formatWhenShort(introduction.finalized_at) },
+              ]}
+            />
+          ) : (
+            <p className="hq-card__subtitle">Introduction is not configured for this brand.</p>
+          )}
+        </div>
+        <div className="hq-card" style={{ padding: 10 }}>
+          <p className="hq-card__title" style={{ margin: 0 }}>Explore</p>
+          {explore.configured ? (
+            <StatGroup
+              items={[
+                {
+                  label: "Returned right now (live)",
+                  value: explore.available_count ?? 0,
+                },
+              ]}
+            />
+          ) : (
+            <p className="hq-card__subtitle">Explore is not configured for this brand.</p>
+          )}
+          <p className="hq-card__subtitle" style={{ marginTop: 4 }}>
+            Computed on demand — Explore has no allocation table, so there is no historical
+            &quot;returned today&quot; count, only what would be returned right now.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

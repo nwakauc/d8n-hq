@@ -16,6 +16,7 @@ import {
   parseAuthAttemptList,
   parseCurrentOperatorResponse,
   parseDiscoveryDiagnostic,
+  parseDiscoveryHealth,
   parseEnforcementList,
   parseMember360,
   parseMemberDirectoryList,
@@ -55,6 +56,7 @@ import type {
   HqOperatorSession,
   HqTimelineEvent,
   HqDiscoveryDiagnostic,
+  HqDiscoveryHealth,
   HqEnforcementList,
   HqHistoryParams,
   HqIdentityCorrection,
@@ -316,6 +318,11 @@ export async function fetchHqSystemHealth(): Promise<HqSystemHealthResponse> {
 export async function fetchHqAttention(): Promise<HqAttention> {
   const data = await apiRequest("/api/v1/hq/attention");
   return parseHqAttention(data);
+}
+
+export async function fetchHqDiscoveryHealth(): Promise<HqDiscoveryHealth> {
+  const data = await apiRequest("/api/v1/hq/discovery_health");
+  return parseDiscoveryHealth(data);
 }
 
 export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupsResponse> {
