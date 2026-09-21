@@ -8,6 +8,10 @@ import {
   parseCommandCentreBrands,
   parseCommandCentreHealth,
   parseDatabaseBackups,
+  parseHqDevices,
+  parseHqNotificationHealth,
+  parseHqNotificationDeliveries,
+  parseHqSystemHealth,
   parseAuthAttemptList,
   parseCurrentOperatorResponse,
   parseDiscoveryDiagnostic,
@@ -43,6 +47,7 @@ import type {
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
   HqDatabaseBackupsResponse,
+  HqDevicesResponse,
   HqAuthAttemptList,
   HqBanProfileBody,
   HqCurrentOperator,
@@ -57,6 +62,8 @@ import type {
   HqMfaChallengeResult,
   HqMfaConfirmation,
   HqMfaEnrollmentResponse,
+  HqNotificationHealthResponse,
+  HqNotificationDeliveriesResponse,
   HqCreateOperatorBody,
   HqManagedOperator,
   HqMemberDirectoryList,
@@ -76,6 +83,7 @@ import type {
   HqSuspendProfileBody,
   HqTrustSafetyEnforcementParams,
   HqTrustSafetyOverview,
+  HqSystemHealthResponse,
   HqUpdateReportBody,
 } from "./types.ts";
 
@@ -281,6 +289,26 @@ export async function fetchCommandCentreHealth(): Promise<HqCommandCentreHealth>
 export async function fetchHqDatabaseBackups(): Promise<HqDatabaseBackupsResponse> {
   const data = await apiRequest("/api/v1/hq/backups");
   return parseDatabaseBackups(data);
+}
+
+export async function fetchHqDevices(window = "24h"): Promise<HqDevicesResponse> {
+  const data = await apiRequest(`/api/v1/hq/devices?window=${encodeURIComponent(window)}`);
+  return parseHqDevices(data);
+}
+
+export async function fetchHqNotificationHealth(window = "24h"): Promise<HqNotificationHealthResponse> {
+  const data = await apiRequest(`/api/v1/hq/notification_health?window=${encodeURIComponent(window)}`);
+  return parseHqNotificationHealth(data);
+}
+
+export async function fetchHqNotificationDeliveries(window = "24h"): Promise<HqNotificationDeliveriesResponse> {
+  const data = await apiRequest(`/api/v1/hq/notification_deliveries?window=${encodeURIComponent(window)}`);
+  return parseHqNotificationDeliveries(data);
+}
+
+export async function fetchHqSystemHealth(): Promise<HqSystemHealthResponse> {
+  const data = await apiRequest("/api/v1/hq/system_health");
+  return parseHqSystemHealth(data);
 }
 
 export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupsResponse> {

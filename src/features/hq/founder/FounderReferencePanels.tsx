@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
-import type { HqSecurityAlertList, HqVersionInfo } from "../../../lib/hq/types.ts";
+import type {
+  HqDevicesResponse,
+  HqHealthStatus,
+  HqNotificationHealthResponse,
+  HqSecurityAlertList,
+  HqSystemHealthResponse,
+  HqVersionInfo,
+} from "../../../lib/hq/types.ts";
 import { formatRelativeTime } from "./formatRelativeTime.ts";
 import { FounderIcon, FounderIconBadge, type FounderIconName } from "./founderIcons.tsx";
 import { humanizeSecurityEvent } from "./securityEventLabels.ts";
@@ -172,18 +179,48 @@ const DEVICE_ROWS: Array<{ label: string; icon: FounderIconName }> = [
   { label: "Other", icon: "info" },
 ];
 
-export function FounderDevicesAndPlatforms() {
-  const [activeBrand, setActiveBrand] = useState(RETENTION_BRANDS[0]);
+function healthLabel(status: HqHealthStatus): string {
+  return status.replace(/_/g, " ");
+}
+
+function healthClass(status: HqHealthStatus): string {
+  return `founder-health-status founder-health-status--${status}`;
+}
+
+export function FounderDevicesAndPlatforms({
+  data,
+  error,
+}: {
+  data: HqDevicesResponse | null;
+  error: string | null;
+}) {
+  const platformRows = data
+    ? Object.entries(data.platforms).map(([platform, summary]) => ({
+        key: platform,
+        label: platform === "ios" ? "iOS" : platform[0].toUpperCase() + platform.slice(1),
+        value: summary.active_users,
+        max: Math.max(...Object.values(data.platforms).map((entry) => entry.active_users), 1),
+        tone: "#2563eb",
+      }))
+    : DEVICE_ROWS.map((row) => ({ key: row.label, label: row.label, value: null, max: 1, tone: "#2563eb" }));
   return (
     <CoveragePanel title="Devices & platforms" subtitle="Active product surfaces and app versions." icon="search" tone="green">
-      <BrandTabs tabs={RETENTION_BRANDS} active={activeBrand} onChange={setActiveBrand} />
+      <p className="founder-today__scope">Brand scope: {data?.brand ?? "loading"}</p>
       <FounderHorizontalBars
         ariaLabel="Devices and platforms"
-        rows={DEVICE_ROWS.map((row) => ({ key: row.label, label: row.label, value: null, max: 1, tone: "#16a34a" }))}
+        rows={platformRows}
       />
-      <NeedsBackendNote>
-        Needs backend implementation: device/OS/app-version is not captured on sessions or events yet.
-      </NeedsBackendNote>
+      {error ? <p className="founder-panel__error">{error}</p> : null}
+      {data ? (
+        <div className="founder-device-versions">
+          {Object.entries(data.platforms).flatMap(([platform, summary]) => summary.versions.map((version) => (
+            <span key={`${platform}-${version.version ?? "unknown"}`}>
+              {platform} · {version.version ?? "Version not reported"} · {version.active_users.toLocaleString("en-ZA")} users
+            </span>
+          ))).slice(0, 6)}
+          {data.rows.length === 0 ? <span>No client activity recorded in this window.</span> : null}
+        </div>
+      ) : !error ? <NeedsBackendNote>Loading device telemetry…</NeedsBackendNote> : null}
     </CoveragePanel>
   );
 }
@@ -194,7 +231,13 @@ const NOTIFICATION_CHANNELS: Array<{ label: string; icon: FounderIconName }> = [
   { label: "SMS", icon: "message-circle" },
 ];
 
-export function FounderNotificationHealth() {
+export function FounderNotificationHealth({
+  data,
+  error,
+}: {
+  data: HqNotificationHealthResponse | null;
+  error: string | null;
+}) {
   return (
     <CoveragePanel title="Notification health" subtitle="Delivery health by channel." icon="message-circle" tone="amber">
       <ul className="founder-notification-list">
@@ -204,18 +247,30 @@ export function FounderNotificationHealth() {
               <FounderIcon name={channel.icon} size={15} />
               {channel.label}
             </span>
-            <span className="founder-notification-list__stat">
-              <i className="founder-status-dot founder-status-dot--muted" />
-              Delivered —
-            </span>
-            <span className="founder-notification-list__stat founder-notification-list__stat--muted">Fail —</span>
+            {(() => {
+              const key = channel.label.toLowerCase() as "push" | "email" | "sms";
+              const metric = data?.channels[key];
+              if (!metric) return <span className="founder-notification-list__stat founder-notification-list__stat--muted">—</span>;
+              if (!metric.configured) return <span className="founder-notification-list__stat founder-notification-list__stat--muted">Not configured</span>;
+              return (
+                <>
+                  <span className="founder-notification-list__stat">
+                    <i className={`founder-status-dot founder-status-dot--${metric.status === "healthy" ? "good" : "warn"}`} />
+                    Accepted {metric.provider_accepted.toLocaleString("en-ZA")}
+                  </span>
+                  <span className="founder-notification-list__stat founder-notification-list__stat--muted">
+                    Fail {metric.failed.toLocaleString("en-ZA")}
+                  </span>
+                </>
+              );
+            })()}
           </li>
         ))}
       </ul>
-      <NeedsBackendNote>
-        Needs backend implementation: provider delivery receipts (push/email/SMS) are not surfaced to HQ.
-      </NeedsBackendNote>
-      <Link className="founder-link-arrow" to="/hq">View delivery logs</Link>
+      {error ? <p className="founder-panel__error">{error}</p> : null}
+      {data ? <p className="founder-reference-empty founder-reference-empty--note">Provider acceptance is measured. Delivery receipts are not captured yet.</p> : null}
+      {!data && !error ? <NeedsBackendNote>Loading notification telemetry…</NeedsBackendNote> : null}
+      {data ? <Link className="founder-link-arrow" to="/hq/notifications">View delivery logs</Link> : null}
     </CoveragePanel>
   );
 }
@@ -229,8 +284,23 @@ const SYSTEM_SERVICES = [
   { label: "Third-party services", icon: "search" as FounderIconName },
 ];
 
-export function FounderSystemHealth({ version }: { version: HqVersionInfo | null }) {
+export function FounderSystemHealth({
+  version,
+  data,
+  error,
+}: {
+  version: HqVersionInfo | null;
+  data: HqSystemHealthResponse | null;
+  error: string | null;
+}) {
   const release = version?.release ?? version?.image_version ?? version?.git_sha?.slice(0, 7) ?? "Unavailable";
+  const serviceRows = data ? [
+    ["D8N API", data.services.api],
+    ["Database", data.services.database],
+    ["Jobs / queue", data.services.jobs],
+    ["Media storage", data.services.media_storage],
+    ["Notifications", data.services.notifications],
+  ] as const : [];
   return (
     <CoveragePanel title="System health" subtitle="Evidence-backed platform status." icon="rocket" tone="green">
       <div className="founder-system-health__release">
@@ -238,23 +308,30 @@ export function FounderSystemHealth({ version }: { version: HqVersionInfo | null
         <strong>{release}</strong>
       </div>
       <ul className="founder-service-list">
-        {SYSTEM_SERVICES.map((service) => (
-          <li key={service.label} className="founder-service-list__row">
+        {(serviceRows.length > 0 ? serviceRows : SYSTEM_SERVICES.map((service) => [service.label, null] as const)).map(([label, service]) => (
+          <li key={label} className="founder-service-list__row">
             <span className="founder-service-list__label">
-              <FounderIcon name={service.icon} size={14} />
-              {service.label}
+              <FounderIcon name={SYSTEM_SERVICES.find((entry) => entry.label === label)?.icon ?? "info"} size={14} />
+              {label}
             </span>
-            <span className="founder-service-list__status">
-              <i className="founder-status-dot founder-status-dot--muted" />
-              Needs backend
+            <span className={service ? healthClass(service.status) : "founder-service-list__status"}>
+              <i className={`founder-status-dot founder-status-dot--${service?.status === "healthy" ? "good" : service ? "warn" : "muted"}`} />
+              {service ? `${healthLabel(service.status)}${service.latency_ms === null ? "" : ` · ${service.latency_ms}ms`}` : "Loading"}
             </span>
           </li>
         ))}
+        {data?.services.third_party.length ? (
+          <li className="founder-service-list__row">
+            <span className="founder-service-list__label"><FounderIcon name="search" size={14} />Third-party services</span>
+            <span className={healthClass(data.services.third_party.some((service) => service.status === "down") ? "down" : "unknown")}>
+              {data.services.third_party.length} observed provider{data.services.third_party.length === 1 ? "" : "s"}
+            </span>
+          </li>
+        ) : null}
       </ul>
-      <NeedsBackendNote>
-        Needs backend implementation: per-service availability/latency/error-rate telemetry is not
-        exported to HQ beyond this app's own release marker.
-      </NeedsBackendNote>
+      {error ? <p className="founder-panel__error">{error}</p> : null}
+      {data ? <p className="founder-reference-empty founder-reference-empty--note">Checked {formatRelativeTime(data.generated_at)}. Unknown means no current probe evidence.</p> : null}
+      {!data && !error ? <NeedsBackendNote>Loading system telemetry…</NeedsBackendNote> : null}
     </CoveragePanel>
   );
 }

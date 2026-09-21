@@ -11,7 +11,69 @@ import {
   parseRegistrationTrendResponse,
   parseProductFunnel,
   parseProductTrends,
+  parseHqDevices,
+  parseHqNotificationHealth,
+  parseHqSystemHealth,
 } from "./parse.ts";
+
+describe("operational HQ contracts", () => {
+  it("keeps device versions and active counts evidence-backed", () => {
+    const result = parseHqDevices({
+      window: "24h",
+      brand: "date9ja",
+      generated_at: "2026-09-21T10:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      platforms: {
+        android: { active_users: 2, active_devices: 2, versions: [{ version: "2.4.1", active_users: 2, active_devices: 2, last_seen_at: null }] },
+        ios: { active_users: 0, active_devices: 0, versions: [] },
+        web: { active_users: 1, active_devices: 1, versions: [{ version: null, active_users: 1, active_devices: 1, last_seen_at: null }] },
+        other: { active_users: 0, active_devices: 0, versions: [] },
+      },
+      rows: [],
+    });
+    expect(result.platforms.android.versions[0]?.version).toBe("2.4.1");
+  });
+
+  it("does not turn missing notification receipts into delivered counts", () => {
+    const channel = (name: "push" | "email" | "sms") => ({
+      channel: name,
+      configured: true,
+      status: "unknown",
+      provider: ["test"],
+      attempted: 0,
+      queued: 0,
+      processing: 0,
+      provider_accepted: 0,
+      failed: 0,
+      skipped: 0,
+      delivery_receipts: "not_captured",
+      delivery_rate: null,
+      failure_rate: null,
+      failure_reasons: {},
+      last_failure_at: null,
+      message: "No delivery attempts were recorded in this window.",
+    });
+    const result = parseHqNotificationHealth({
+      window: "24h", brand: "date9ja", generated_at: "2026-09-21T10:00:00Z", time_zone: "Africa/Johannesburg",
+      channels: { push: channel("push"), email: channel("email"), sms: { ...channel("sms"), configured: false, status: "not_configured" } },
+    });
+    expect(result.channels.push.delivery_receipts).toBe("not_captured");
+    expect(result.channels.sms.status).toBe("not_configured");
+  });
+
+  it("accepts explicit unknown system status", () => {
+    const service = { status: "unknown", checked_at: "2026-09-21T10:00:00Z", latency_ms: null, message: "No probe", evidence: {} };
+    const result = parseHqSystemHealth({
+      generated_at: "2026-09-21T10:00:00Z", brand: "date9ja", overall: "unknown",
+      services: { api: service, database: service, jobs: service, media_storage: service, notifications: service, third_party: [] },
+      releases: {
+        hq: null,
+        d8n_api: { app: "d8n", git_sha: null, release: null, image_version: null, environment: "test", rails_environment: "test", build_timestamp: null, booted_at: "2026-09-21T10:00:00Z" },
+      },
+    });
+    expect(result.overall).toBe("unknown");
+  });
+});
 
 describe("parseRegistrationTrendResponse", () => {
   it("accepts the bounded production registration trend contract", () => {

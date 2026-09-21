@@ -1713,6 +1713,54 @@
   background: #cbd5e1;
 }
 
+.founder-status-dot--good { background: #16a34a; }
+.founder-status-dot--warn { background: #d97706; }
+
+.founder-health-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--founder-text-muted);
+  font-size: 11px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.founder-health-status--healthy { color: #15803d; }
+.founder-health-status--degraded,
+.founder-health-status--not_configured { color: #b45309; }
+.founder-health-status--down { color: #be123c; }
+.founder-health-status--unknown { color: var(--founder-text-faint); }
+
+.founder-device-versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.founder-device-versions span {
+  padding: 4px 7px;
+  border: 1px solid var(--founder-border);
+  border-radius: 999px;
+  color: var(--founder-text-muted);
+  font-size: 10px;
+}
+
+.notification-deliveries-page__intro { margin-bottom: 18px; }
+.notification-deliveries-page__intro h1 { margin: 12px 0 4px; }
+.notification-deliveries-page__intro p { color: var(--founder-text-muted, #667085); max-width: 760px; }
+.notification-deliveries-page__intro label { display: inline-flex; align-items: center; gap: 9px; color: var(--founder-text-muted); font-size: 12px; }
+.notification-deliveries-page__intro select { padding: 8px 10px; border: 1px solid var(--founder-border); border-radius: 8px; background: #fff; }
+.notification-deliveries-table-wrap { overflow-x: auto; }
+.notification-deliveries-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.notification-deliveries-table th, .notification-deliveries-table td { padding: 11px 9px; border-bottom: 1px solid var(--founder-border); text-align: left; white-space: nowrap; }
+.notification-deliveries-table th { color: var(--founder-text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.notification-delivery-status { font-weight: 600; text-transform: capitalize; }
+.notification-delivery-status--sent { color: #15803d; }
+.notification-delivery-status--failed { color: #be123c; }
+.notification-delivery-status--pending, .notification-delivery-status--processing { color: #b45309; }
+
 .founder-notification-list {
   display: grid;
   gap: 0;

@@ -776,6 +776,162 @@ export function parseVersionInfo(data: unknown): import("./types.ts").HqVersionI
   };
 }
 
+function parseHqHealthStatus(value: unknown): import("./types.ts").HqHealthStatus {
+  if (value === "healthy" || value === "degraded" || value === "down" || value === "unknown" || value === "not_configured") {
+    return value;
+  }
+  throw new ApiError(502, undefined, "invalid_hq_health_status");
+}
+
+function parseDeviceVersion(value: unknown): import("./types.ts").HqDeviceVersion {
+  const row = requireRecord(value, "device_version");
+  return {
+    version: nullableString(row.version),
+    active_users: requireNumber(row.active_users, "device_version_active_users"),
+    active_devices: requireNumber(row.active_devices, "device_version_active_devices"),
+    last_seen_at: nullableString(row.last_seen_at),
+  };
+}
+
+export function parseHqDevices(data: unknown): import("./types.ts").HqDevicesResponse {
+  const root = requireRecord(data, "devices");
+  const platforms = requireRecord(root.platforms, "device_platforms");
+  const names = ["android", "ios", "web", "other"] as const;
+  const parsedPlatforms = Object.fromEntries(
+    names.map((name) => {
+      const row = requireRecord(platforms[name], `device_platform_${name}`);
+      if (!Array.isArray(row.versions)) throw new ApiError(502, undefined, "invalid_hq_device_versions");
+      return [name, {
+        active_users: requireNumber(row.active_users, "device_active_users"),
+        active_devices: requireNumber(row.active_devices, "device_active_devices"),
+        versions: row.versions.map(parseDeviceVersion),
+      }];
+    }),
+  ) as import("./types.ts").HqDevicesResponse["platforms"];
+  if (!Array.isArray(root.rows)) throw new ApiError(502, undefined, "invalid_hq_device_rows");
+  return {
+    window: requireString(root.window, "device_window"),
+    brand: requireString(root.brand, "device_brand"),
+    generated_at: requireString(root.generated_at, "device_generated_at"),
+    time_zone: requireString(root.time_zone, "device_time_zone"),
+    platforms: parsedPlatforms,
+    rows: root.rows.map((value) => {
+      const row = parseDeviceVersion(value);
+      const record = requireRecord(value, "device_row");
+      return { ...row, platform: requireString(record.platform, "device_row_platform"), brand: requireString(record.brand, "device_row_brand") };
+    }),
+  };
+}
+
+function parseNotificationChannel(value: unknown): import("./types.ts").HqNotificationChannel {
+  const row = requireRecord(value, "notification_channel");
+  const channel = row.channel;
+  if (channel !== "push" && channel !== "email" && channel !== "sms") {
+    throw new ApiError(502, undefined, "invalid_hq_notification_channel");
+  }
+  if (!Array.isArray(row.provider) || !row.provider.every((entry) => typeof entry === "string")) {
+    throw new ApiError(502, undefined, "invalid_hq_notification_providers");
+  }
+  if (row.delivery_receipts !== "not_captured") {
+    throw new ApiError(502, undefined, "invalid_hq_notification_receipts");
+  }
+  return {
+    channel,
+    configured: requireBoolean(row.configured, "notification_configured"),
+    status: parseHqHealthStatus(row.status),
+    provider: row.provider,
+    attempted: requireNumber(row.attempted, "notification_attempted"),
+    queued: requireNumber(row.queued, "notification_queued"),
+    processing: requireNumber(row.processing, "notification_processing"),
+    provider_accepted: requireNumber(row.provider_accepted, "notification_provider_accepted"),
+    failed: requireNumber(row.failed, "notification_failed"),
+    skipped: requireNumber(row.skipped, "notification_skipped"),
+    delivery_receipts: "not_captured",
+    delivery_rate: nullableNumber(row.delivery_rate, "notification_delivery_rate"),
+    failure_rate: nullableNumber(row.failure_rate, "notification_failure_rate"),
+    failure_reasons: parseCountMap(row.failure_reasons, "notification_failure_reasons"),
+    last_failure_at: nullableString(row.last_failure_at),
+    message: requireString(row.message, "notification_message"),
+  };
+}
+
+export function parseHqNotificationHealth(data: unknown): import("./types.ts").HqNotificationHealthResponse {
+  const root = requireRecord(data, "notification_health");
+  const channels = requireRecord(root.channels, "notification_channels");
+  const names = ["push", "email", "sms"] as const;
+  const parsedChannels = Object.fromEntries(names.map((name) => [name, parseNotificationChannel(channels[name])])) as import("./types.ts").HqNotificationHealthResponse["channels"];
+  return {
+    window: requireString(root.window, "notification_window"),
+    brand: requireString(root.brand, "notification_brand"),
+    generated_at: requireString(root.generated_at, "notification_generated_at"),
+    time_zone: requireString(root.time_zone, "notification_time_zone"),
+    channels: parsedChannels,
+  };
+}
+
+export function parseHqNotificationDeliveries(data: unknown): import("./types.ts").HqNotificationDeliveriesResponse {
+  const root = requireRecord(data, "notification_deliveries");
+  if (!Array.isArray(root.deliveries)) throw new ApiError(502, undefined, "invalid_hq_notification_deliveries");
+  return {
+    window: requireString(root.window, "notification_delivery_window"),
+    brand: requireString(root.brand, "notification_delivery_brand"),
+    generated_at: requireString(root.generated_at, "notification_delivery_generated_at"),
+    time_zone: requireString(root.time_zone, "notification_delivery_time_zone"),
+    deliveries: root.deliveries.map((value) => {
+      const row = requireRecord(value, "notification_delivery");
+      return {
+        id: requireNumber(row.id, "notification_delivery_id"),
+        brand: requireString(row.brand, "notification_delivery_row_brand"),
+        created_at: requireString(row.created_at, "notification_delivery_created_at"),
+        channel: requireString(row.channel, "notification_delivery_channel"),
+        provider: requireString(row.provider, "notification_delivery_provider"),
+        status: requireString(row.status, "notification_delivery_status"),
+        notification_type: nullableString(row.notification_type),
+        attempt_count: requireNumber(row.attempt_count, "notification_delivery_attempts"),
+        latency_ms: nullableNumber(row.latency_ms, "notification_delivery_latency"),
+        failure_reason: nullableString(row.failure_reason),
+        provider_message_id: nullableString(row.provider_message_id),
+      };
+    }),
+  };
+}
+
+function parseSystemHealthService(value: unknown): import("./types.ts").HqSystemHealthService {
+  const row = requireRecord(value, "system_health_service");
+  return {
+    status: parseHqHealthStatus(row.status),
+    checked_at: requireString(row.checked_at, "system_health_checked_at"),
+    latency_ms: nullableNumber(row.latency_ms, "system_health_latency"),
+    message: requireString(row.message, "system_health_message"),
+    evidence: requireRecord(row.evidence, "system_health_evidence"),
+  };
+}
+
+export function parseHqSystemHealth(data: unknown): import("./types.ts").HqSystemHealthResponse {
+  const root = requireRecord(data, "system_health");
+  const services = requireRecord(root.services, "system_health_services");
+  const thirdParty = services.third_party;
+  if (!Array.isArray(thirdParty)) throw new ApiError(502, undefined, "invalid_hq_third_party_services");
+  const releases = requireRecord(root.releases, "system_health_releases");
+  return {
+    generated_at: requireString(root.generated_at, "system_health_generated_at"),
+    brand: requireString(root.brand, "system_health_brand"),
+    overall: parseHqHealthStatus(root.overall),
+    services: {
+      api: parseSystemHealthService(services.api),
+      database: parseSystemHealthService(services.database),
+      jobs: parseSystemHealthService(services.jobs),
+      media_storage: parseSystemHealthService(services.media_storage),
+      notifications: parseSystemHealthService(services.notifications),
+      third_party: thirdParty.map(parseSystemHealthService),
+    },
+    releases: {
+      hq: releases.hq === null ? null : parseVersionInfo(releases.hq),
+      d8n_api: parseVersionInfo(releases.d8n_api),
+    },
+  };
+}
+
 function parseDatabaseBackup(value: unknown): HqDatabaseBackup {
   const row = requireRecord(value, "database_backup");
   if (row.database !== "primary" && row.database !== "queue") {

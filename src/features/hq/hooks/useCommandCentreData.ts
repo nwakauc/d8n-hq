@@ -6,6 +6,9 @@ import {
   fetchD8nVersion,
   fetchHqAnalyticsOverview,
   fetchHqDatabaseBackups,
+  fetchHqDevices,
+  fetchHqNotificationHealth,
+  fetchHqSystemHealth,
   fetchHqProductFunnel,
   fetchHqProductTrends,
   fetchHqSecurityAlerts,
@@ -16,11 +19,14 @@ import type {
   HqCommandCentreHealth,
   HqAnalyticsOverview,
   HqDatabaseBackupsResponse,
+  HqDevicesResponse,
+  HqNotificationHealthResponse,
   HqRegistrationTrendResponse,
   HqProductFunnel,
   HqProductTrends,
   HqSecurityAlertList,
   HqVersionInfo,
+  HqSystemHealthResponse,
 } from "../../../lib/hq/types.ts";
 
 export type CommandCentreLoadState = "loading" | "ready";
@@ -35,6 +41,9 @@ export type CommandCentreData = {
   analytics: HqAnalyticsOverview | null;
   productTrends: HqProductTrends | null;
   backups: HqDatabaseBackupsResponse | null;
+  devices: HqDevicesResponse | null;
+  notificationHealth: HqNotificationHealthResponse | null;
+  systemHealth: HqSystemHealthResponse | null;
   healthError: string | null;
   brandsError: string | null;
   alertsError: string | null;
@@ -44,6 +53,9 @@ export type CommandCentreData = {
   analyticsError: string | null;
   productTrendsError: string | null;
   backupsError: string | null;
+  devicesError: string | null;
+  notificationHealthError: string | null;
+  systemHealthError: string | null;
 };
 
 const EMPTY_DATA: CommandCentreData = {
@@ -56,6 +68,9 @@ const EMPTY_DATA: CommandCentreData = {
   analytics: null,
   productTrends: null,
   backups: null,
+  devices: null,
+  notificationHealth: null,
+  systemHealth: null,
   healthError: null,
   brandsError: null,
   alertsError: null,
@@ -65,7 +80,17 @@ const EMPTY_DATA: CommandCentreData = {
   analyticsError: null,
   productTrendsError: null,
   backupsError: null,
+  devicesError: null,
+  notificationHealthError: null,
+  systemHealthError: null,
 };
+
+function operationalWindow(timeRange: string): string {
+  if (timeRange === "today") return "24h";
+  if (timeRange === "last_7d") return "7d";
+  if (timeRange === "last_30d") return "30d";
+  return "24h";
+}
 
 export function useCommandCentreData({
   canAnalytics,
@@ -92,6 +117,7 @@ export function useCommandCentreData({
     let cancelled = false;
     const next: CommandCentreData = { ...EMPTY_DATA };
     const tasks: Promise<void>[] = [];
+    const window = operationalWindow(timeRange);
 
     if (canAnalytics) {
       tasks.push(
@@ -148,6 +174,24 @@ export function useCommandCentreData({
             next.productTrendsError = hqErrorMessage(error);
           }),
       );
+      tasks.push(
+        fetchHqDevices(window)
+          .then((devices) => {
+            next.devices = devices;
+          })
+          .catch((error) => {
+            next.devicesError = hqErrorMessage(error);
+          }),
+      );
+      tasks.push(
+        fetchHqNotificationHealth(window)
+          .then((notificationHealth) => {
+            next.notificationHealth = notificationHealth;
+          })
+          .catch((error) => {
+            next.notificationHealthError = hqErrorMessage(error);
+          }),
+      );
     }
     if (canAlerts) {
       tasks.push(
@@ -168,6 +212,15 @@ export function useCommandCentreData({
           })
           .catch((error) => {
             next.backupsError = hqErrorMessage(error);
+          }),
+      );
+      tasks.push(
+        fetchHqSystemHealth()
+          .then((systemHealth) => {
+            next.systemHealth = systemHealth;
+          })
+          .catch((error) => {
+            next.systemHealthError = hqErrorMessage(error);
           }),
       );
     }
@@ -202,6 +255,9 @@ export function useCommandCentreData({
     data.analyticsError,
     data.productTrendsError,
     data.backupsError,
+    data.devicesError,
+    data.notificationHealthError,
+    data.systemHealthError,
   ].filter((message): message is string => Boolean(message));
 
   return {

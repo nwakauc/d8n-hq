@@ -108,6 +108,7 @@ export const HQ_NAV: HqNavEntry[] = [
         soon({ id: "apm", label: "APM & Traces", path: "/hq/apm" }),
         soon({ id: "jobs", label: "Jobs & Queues", path: "/hq/jobs" }),
         live({ id: "database", label: "Database backups", path: "/hq/database" }),
+        live({ id: "notifications", label: "Notification delivery", path: "/hq/notifications" }),
         soon({ id: "infra", label: "Infrastructure", path: "/hq/infrastructure" }),
         soon({ id: "deployments", label: "Deployments", path: "/hq/deployments" }),
       ],

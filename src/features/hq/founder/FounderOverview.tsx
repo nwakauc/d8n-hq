@@ -167,13 +167,13 @@ export function FounderOverview({
 
           <div className="founder-dashboard__row">
             <div className="founder-col-3">
-              <FounderDevicesAndPlatforms />
+              <FounderDevicesAndPlatforms data={data.devices} error={data.devicesError} />
             </div>
             <div className="founder-col-3">
-              <FounderNotificationHealth />
+              <FounderNotificationHealth data={data.notificationHealth} error={data.notificationHealthError} />
             </div>
             <div className="founder-col-3">
-              <FounderSystemHealth version={data.version} />
+              <FounderSystemHealth version={data.version} data={data.systemHealth} error={data.systemHealthError} />
             </div>
             <div className="founder-col-3">
               <DatabaseBackupCard data={data.backups} error={data.backupsError} canManage={canManageBackups} />

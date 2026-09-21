@@ -561,6 +561,105 @@ export type HqVersionInfo = {
   booted_at: string;
 };
 
+export type HqHealthStatus = "healthy" | "degraded" | "down" | "unknown" | "not_configured";
+
+export type HqDeviceVersion = {
+  version: string | null;
+  active_users: number;
+  active_devices: number;
+  last_seen_at: string | null;
+};
+
+export type HqDevicePlatform = {
+  active_users: number;
+  active_devices: number;
+  versions: HqDeviceVersion[];
+};
+
+export type HqDevicesResponse = {
+  window: string;
+  brand: string;
+  generated_at: string;
+  time_zone: string;
+  platforms: Record<"android" | "ios" | "web" | "other", HqDevicePlatform>;
+  rows: Array<HqDeviceVersion & { platform: string; brand: string }>;
+};
+
+export type HqNotificationChannel = {
+  channel: "push" | "email" | "sms";
+  configured: boolean;
+  status: HqHealthStatus;
+  provider: string[];
+  attempted: number;
+  queued: number;
+  processing: number;
+  provider_accepted: number;
+  failed: number;
+  skipped: number;
+  delivery_receipts: "not_captured";
+  delivery_rate: number | null;
+  failure_rate: number | null;
+  failure_reasons: Record<string, number>;
+  last_failure_at: string | null;
+  message: string;
+};
+
+export type HqNotificationHealthResponse = {
+  window: string;
+  brand: string;
+  generated_at: string;
+  time_zone: string;
+  channels: Record<"push" | "email" | "sms", HqNotificationChannel>;
+};
+
+export type HqNotificationDelivery = {
+  id: number;
+  brand: string;
+  created_at: string;
+  channel: string;
+  provider: string;
+  status: string;
+  notification_type: string | null;
+  attempt_count: number;
+  latency_ms: number | null;
+  failure_reason: string | null;
+  provider_message_id: string | null;
+};
+
+export type HqNotificationDeliveriesResponse = {
+  window: string;
+  brand: string;
+  generated_at: string;
+  time_zone: string;
+  deliveries: HqNotificationDelivery[];
+};
+
+export type HqSystemHealthService = {
+  status: HqHealthStatus;
+  checked_at: string;
+  latency_ms: number | null;
+  message: string;
+  evidence: Record<string, unknown>;
+};
+
+export type HqSystemHealthResponse = {
+  generated_at: string;
+  brand: string;
+  overall: HqHealthStatus;
+  services: {
+    api: HqSystemHealthService;
+    database: HqSystemHealthService;
+    jobs: HqSystemHealthService;
+    media_storage: HqSystemHealthService;
+    notifications: HqSystemHealthService;
+    third_party: HqSystemHealthService[];
+  };
+  releases: {
+    hq: HqVersionInfo | null;
+    d8n_api: HqVersionInfo;
+  };
+};
+
 /** Authoritative HQ permissions — never infer from role labels. */
 export type HqCapability =
   | "hq.member.sensitive_read"
