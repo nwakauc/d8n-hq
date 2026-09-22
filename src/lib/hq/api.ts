@@ -62,6 +62,7 @@ import type {
   HqIdentityCorrection,
   HqIdentityCorrectionField,
   HqMember360,
+  HqPrivateAlbumSummary,
   HqPrivateMediaAccess,
   HqMfaChallengeResult,
   HqMfaConfirmation,
@@ -158,6 +159,11 @@ function historyQuery(params: HqHistoryParams | undefined): string {
 export async function fetchHqMember360(lookup: string): Promise<HqMember360> {
   const data = await apiRequest(memberPath(lookup));
   return parseMember360(data);
+}
+
+export async function fetchHqPrivateAlbums(lookup: string): Promise<HqPrivateAlbumSummary[]> {
+  const data = (await apiRequest(memberPath(lookup, "/private_albums"))) as { albums: HqPrivateAlbumSummary[] };
+  return data.albums;
 }
 
 export async function fetchHqMemberDirectory(
@@ -427,7 +433,7 @@ export async function fetchAdminReport(id: number): Promise<HqAdminReport> {
 
 export async function accessPrivateAlbumItem(
   itemId: string,
-  body: { report_id: number; reason: string },
+  body: { report_id?: number; reason: string },
 ): Promise<HqPrivateMediaAccess> {
   return (await apiRequest(`/api/v1/hq/private_media/items/${encodeURIComponent(itemId)}/access`, {
     method: "POST",

@@ -191,6 +191,34 @@ describe("parseCurrentOperatorResponse", () => {
     expect(response.operator.effective_capabilities).toContain("admin.marketplace.moderate");
     expect(response.operator.effective_capabilities).toContain("hq.backups.manage");
   });
+
+  it("keeps the operator bootstrap usable when the backend adds a capability first", () => {
+    const response = parseCurrentOperatorResponse({
+      operator: {
+        admin_user_id: 10,
+        user_id: 1,
+        status: "active",
+        current_brand: "dateza",
+        role: "founder",
+        effective_capabilities: ["hq.analytics.read", "admin.future_surface.read"],
+        grantable_roles: ["moderator"],
+        brand_assignments: [{
+          brand: "dateza",
+          role: "founder",
+          effective_capabilities: ["admin.future_surface.read", "hq.analytics.read"],
+        }],
+        mfa: {
+          state: "active",
+          required: true,
+          verified: true,
+          recovery_codes_remaining: 8,
+        },
+      },
+    });
+
+    expect(response.operator.effective_capabilities).toEqual(["hq.analytics.read"]);
+    expect(response.operator.brand_assignments[0]?.effective_capabilities).toEqual(["hq.analytics.read"]);
+  });
 });
 
 const member360Fixture = {

@@ -1436,9 +1436,16 @@ function parseCapabilityList(value: unknown, label: string): HqCapability[] {
   }
   const capabilities: HqCapability[] = [];
   for (const item of value) {
-    if (typeof item !== "string" || !HQ_CAPABILITIES.has(item)) {
+    if (typeof item !== "string") {
       throw new ApiError(502, undefined, `invalid_hq_${label}`);
     }
+    // The backend is authoritative and may add a capability before this
+    // frontend has a route or control that uses it. Unknown capability names
+    // must not make an otherwise valid /operator response unreadable. They
+    // are deliberately omitted from the typed set, so the frontend cannot
+    // accidentally grant itself access to a new surface; backend endpoints
+    // remain the authorization boundary.
+    if (!HQ_CAPABILITIES.has(item)) continue;
     if (!capabilities.includes(item as HqCapability)) {
       capabilities.push(item as HqCapability);
     }

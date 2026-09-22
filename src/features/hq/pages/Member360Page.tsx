@@ -8,6 +8,7 @@ import {
   fetchHqEnforcements,
   fetchHqMember360,
   fetchHqMemberTimeline,
+  fetchHqPrivateAlbums,
   fetchHqSecurityEvents,
   hqErrorMessage,
   publishHqMemberProfile,
@@ -18,10 +19,11 @@ import {
 import { canManageIdentityCorrections } from "../../../lib/hq/enforcementAccess.ts";
 import { operatorHasCapability } from "../../../lib/hq/capabilities.ts";
 import { displayNameForMember } from "../../../lib/hq/parse.ts";
-import type { HqDiscoveryDiagnostic, HqMember360, HqTimelineEvent } from "../../../lib/hq/types.ts";
+import type { HqDiscoveryDiagnostic, HqMember360, HqPrivateAlbumSummary, HqTimelineEvent } from "../../../lib/hq/types.ts";
 import { useHqBrand } from "../useHqBrand.ts";
 import { useHqOperator } from "../useHqOperator.ts";
 import { HqHistoryPanel } from "../components/HqHistoryPanel.tsx";
+import { PrivateMediaReview } from "../components/PrivateMediaReview.tsx";
 import {
   CollapsibleSection,
   DataTable,
@@ -196,6 +198,13 @@ export default function Member360Page() {
   const canManageDiscovery = operatorHasCapability(operator, "admin.discovery_restrictions.manage");
   const canManagePublication = operatorHasCapability(operator, "admin.profile_publication.manage");
   const canManageTrust = operatorHasCapability(operator, "admin.trust_adjustments.manage");
+  const canReviewPrivateMedia = operatorHasCapability(operator, "hq.private_media.sensitive_read");
+  const [albumsState, setAlbumsState] = useState<
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "ready"; albums: HqPrivateAlbumSummary[] }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
   const lookup = lookupParam ? decodeURIComponent(lookupParam) : "";
   const [load, setLoad] = useState<{ key: string; result: LoadResult | null }>({
     key: lookup,
@@ -278,6 +287,17 @@ export default function Member360Page() {
     if (!lookup) return;
     void loadMember(lookup).then((result) => setLoad({ key: lookup, result }));
   }, [lookup]);
+
+  async function loadPrivateAlbums() {
+    if (!lookup || albumsState.status === "loading") return;
+    setAlbumsState({ status: "loading" });
+    try {
+      const albums = await fetchHqPrivateAlbums(lookup);
+      setAlbumsState({ status: "ready", albums });
+    } catch (error: unknown) {
+      setAlbumsState({ status: "error", message: hqErrorMessage(error) });
+    }
+  }
 
   async function publishMember() {
     if (!member?.sections.profile.exists || !publicationReason.trim() || publicationPending) return;
@@ -771,6 +791,49 @@ export default function Member360Page() {
                 { label: "Private-media reports", value: member.sections.product.private_media.reports },
               ]}
             />
+            {canReviewPrivateMedia ? (
+              <div className="hq-card__subsection">
+                <h3 className="hq-card__title">Review private media</h3>
+                <p className="hq-card__subtitle">
+                  Browsing this member&rsquo;s private albums is exceptional, requires an investigation reason per
+                  item, and creates an immutable sensitive-access audit event.
+                </p>
+                {albumsState.status === "idle" ? (
+                  <button type="button" className="hq-btn" onClick={() => void loadPrivateAlbums()}>
+                    Load private albums
+                  </button>
+                ) : null}
+                {albumsState.status === "loading" ? <p className="hq-card__subtitle">Loading…</p> : null}
+                {albumsState.status === "error" ? (
+                  <StateBanner tone="error" title="Could not load private albums" body={albumsState.message} />
+                ) : null}
+                {albumsState.status === "ready" ? (
+                  albumsState.albums.length === 0 ? (
+                    <p className="hq-card__subtitle">This member has no private albums.</p>
+                  ) : (
+                    albumsState.albums.map((album) => (
+                      <div key={album.id} className="hq-card__subsection">
+                        <h4 className="hq-card__title">{album.name}</h4>
+                        {album.items.length === 0 ? (
+                          <p className="hq-card__subtitle">No items in this album.</p>
+                        ) : (
+                          album.items
+                            .filter((item) => !item.deleted)
+                            .map((item) => (
+                              <div key={item.id} style={{ marginBottom: 16 }}>
+                                <p className="hq-card__subtitle">
+                                  {item.media_kind} · {item.processing_state} · {formatWhen(item.created_at)}
+                                </p>
+                                <PrivateMediaReview itemId={item.id} operator={operator} />
+                              </div>
+                            ))
+                        )}
+                      </div>
+                    ))
+                  )
+                ) : null}
+              </div>
+            ) : null}
             <DataTable
               columns={[
                 { key: "id", header: "Conversation" },

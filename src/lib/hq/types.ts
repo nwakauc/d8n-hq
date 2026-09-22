@@ -500,6 +500,21 @@ export type HqPrivateMediaAccess = {
   };
 };
 
+export type HqPrivateAlbumItemSummary = {
+  id: string;
+  media_kind: "image" | "video";
+  processing_state: "pending" | "processing" | "ready" | "failed";
+  created_at: string;
+  deleted: boolean;
+};
+
+export type HqPrivateAlbumSummary = {
+  id: string;
+  name: string;
+  created_at: string;
+  items: HqPrivateAlbumItemSummary[];
+};
+
 export type HqAdminReportParty = {
   id: string;
   display_name: string | null;
