@@ -802,6 +802,8 @@ export type HqCapability =
   | "admin.realme_verifications.moderate"
   | "admin.marketplace.read"
   | "admin.marketplace.moderate"
+  | "admin.community.read"
+  | "admin.community.moderate"
   | "admin.identity_correction.manage"
   | "admin.discovery_restrictions.manage"
   | "admin.profile_publication.manage"
@@ -913,6 +915,16 @@ export type HqProfilePhotoQueueEntry = {
 
 export type HqProfilePhotoQueue = {
   photos: HqProfilePhotoQueueEntry[];
+};
+
+export type HqCommunityType = "questions" | "answers" | "events" | "stories" | "circles";
+
+export type HqCommunitySubmission = {
+  id: string;
+  type: string;
+  status: string;
+  submitted_at: string;
+  content: Record<string, unknown>;
 };
 
 export type HqProfilePhotoModeration = {

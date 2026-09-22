@@ -91,7 +91,9 @@ function NavGroup({
                 ? attention?.moderation.profile_photos ?? 0
                 : item.id === "trust-reports"
                   ? attention?.safety.reports ?? 0
-                  : 0;
+                  : item.id === "trust-community"
+                    ? attention?.moderation.community_pending ?? 0
+                    : 0;
             return (
               <NavLink
                 key={item.id}

@@ -92,6 +92,7 @@ export const HQ_NAV: HqNavEntry[] = [
         live({ id: "trust-overview", label: "Overview", path: "/hq/trust-safety" }),
         live({ id: "trust-reports", label: "Reports", path: "/hq/trust-safety?tab=queue" }),
         live({ id: "trust-photos", label: "Photo moderation", path: "/hq/moderation/photos" }),
+        live({ id: "trust-community", label: "Community moderation", path: "/hq/moderation/community" }),
         live({ id: "trust-realme", label: "RealMe moderation", path: "/hq/moderation/realme" }),
         live({ id: "trust-enforcements", label: "Enforcements", path: "/hq/trust-safety?tab=enforcements" }),
         live({ id: "trust-offenders", label: "Repeat offenders", path: "/hq/trust-safety?tab=offenders" }),

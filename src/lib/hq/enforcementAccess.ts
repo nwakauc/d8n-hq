@@ -44,6 +44,12 @@ export function canModerateRealmeVerifications(
   return operatorHasCapability(operator, "admin.realme_verifications.moderate");
 }
 
+export function canModerateCommunity(
+  operator: HqCurrentOperator | null | undefined,
+): boolean {
+  return operatorHasCapability(operator, "admin.community.moderate");
+}
+
 export function canManageIdentityCorrections(
   operator: HqCurrentOperator | null | undefined,
 ): boolean {

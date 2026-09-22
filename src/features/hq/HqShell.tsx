@@ -33,7 +33,7 @@ function HqShellInner() {
         ? "Look up a member and inspect operational state for the selected brand."
         : title === "Trust & Safety" || title === "Overview"
           ? "Moderation queue, repeat offenders, and enforcement history for this brand."
-          : title === "Reports" || title === "Photo moderation" || title === "Enforcements" || title === "Repeat offenders"
+          : title === "Reports" || title === "Photo moderation" || title === "Community moderation" || title === "Enforcements" || title === "Repeat offenders"
             ? "Trust & Safety operations for this brand."
           : title === "Report detail"
             ? "Inspect evidence and apply lifecycle or account enforcement actions."

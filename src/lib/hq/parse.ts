@@ -92,6 +92,7 @@ import type {
   HqMfaEnrollmentResponse,
   HqMfaLifecycleState,
   HqMfaState,
+  HqCommunitySubmission,
   HqManagedOperator,
   HqOperatorAssignment,
   HqOperatorRole,
@@ -1643,6 +1644,25 @@ export function parseProfilePhotoModerationResult(data: unknown): HqProfilePhoto
     transitioned: requireBoolean(root.transitioned, "photo_transitioned"),
     photo: parseProfilePhotoModeration(root.photo),
   };
+}
+
+function parseCommunitySubmission(value: unknown): HqCommunitySubmission {
+  const row = requireRecord(value, "community_submission");
+  return {
+    id: requireString(row.id, "community_submission_id"),
+    type: requireString(row.type, "community_submission_type"),
+    status: requireString(row.status, "community_submission_status"),
+    submitted_at: requireString(row.submitted_at, "community_submission_submitted_at"),
+    content: requireRecord(row.content, "community_submission_content"),
+  };
+}
+
+export function parseCommunityQueue(data: unknown): HqCommunitySubmission[] {
+  const root = requireRecord(data, "community_queue");
+  if (!Array.isArray(root.submissions)) {
+    throw new ApiError(502, undefined, "invalid_hq_community_queue");
+  }
+  return root.submissions.map(parseCommunitySubmission);
 }
 
 function parseRealmeCheckType(value: unknown): HqRealmeCheckType {

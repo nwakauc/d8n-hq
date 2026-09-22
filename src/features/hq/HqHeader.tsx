@@ -88,6 +88,7 @@ export function NotificationsTrigger() {
   const items = [
     { label: "RealMe verification", count: attention?.identity.realme ?? 0, path: "/hq/moderation/realme" },
     { label: "Profile photos", count: attention?.moderation.profile_photos ?? 0, path: "/hq/moderation/photos" },
+    { label: "Community submissions", count: attention?.moderation.community_pending ?? 0, path: "/hq/moderation/community" },
     { label: "Reports", count: attention?.safety.reports ?? 0, path: "/hq/trust-safety?tab=queue" },
   ].filter((item) => item.count > 0);
   return (

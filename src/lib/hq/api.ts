@@ -7,6 +7,7 @@ import {
   parseAnalyticsOverview,
   parseCommandCentreBrands,
   parseCommandCentreHealth,
+  parseCommunityQueue,
   parseDatabaseBackups,
   parseHqDevices,
   parseHqNotificationHealth,
@@ -48,6 +49,8 @@ import type {
   HqAnalyticsOverview,
   HqCommandCentreBrandsResponse,
   HqCommandCentreHealth,
+  HqCommunitySubmission,
+  HqCommunityType,
   HqDatabaseBackupsResponse,
   HqDevicesResponse,
   HqAuthAttemptList,
@@ -560,6 +563,36 @@ export async function moderateProfilePhoto(
     body: JSON.stringify({ status }),
   });
   return parseProfilePhotoModerationResult(data);
+}
+
+export async function fetchCommunityQueue(type: HqCommunityType): Promise<HqCommunitySubmission[]> {
+  const data = await apiRequest(`/api/v1/admin/community/${type}`);
+  return parseCommunityQueue(data);
+}
+
+export async function moderateCommunitySubmission(
+  type: HqCommunityType,
+  id: string,
+  status: "approved" | "rejected" | "hidden",
+  note?: string,
+): Promise<void> {
+  await apiRequest(`/api/v1/admin/community/${type}/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, moderation_note: note }),
+  });
+}
+
+export async function removeCommunityContent(
+  type: "posts" | "comments",
+  id: string,
+  note?: string,
+): Promise<void> {
+  await apiRequest(`/api/v1/admin/community/${type}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ moderation_note: note }),
+  });
 }
 
 export async function fetchRealmeQueue(): Promise<HqRealmeQueue> {

@@ -19,6 +19,7 @@ import {
   StatusBadge,
   UnavailableState,
 } from "../components/HqPrimitives.tsx";
+import { CommunityContentRemoval, communityRemovalTargetType } from "../components/CommunityContentRemoval.tsx";
 import { PrivateMediaReview } from "../components/PrivateMediaReview.tsx";
 import { useHqOperator } from "../useHqOperator.ts";
 import { opsCan } from "../../ops/opsCapabilities.ts";
@@ -397,6 +398,16 @@ export default function ReportDetailPage({ routePrefix = "hq" }: ReportDetailPag
       {report.target_type === "private_album_item" && typeof report.evidence.item_public_id === "string" ? (
         <MetricCard title="Sensitive private-media review">
           <PrivateMediaReview itemId={report.evidence.item_public_id} reportId={report.id} operator={operator} />
+        </MetricCard>
+      ) : null}
+
+      {communityRemovalTargetType(report.target_type) && typeof report.evidence.community_public_id === "string" ? (
+        <MetricCard title="Community content moderation">
+          <CommunityContentRemoval
+            reportTargetType={report.target_type}
+            contentPublicId={report.evidence.community_public_id}
+            operator={operator}
+          />
         </MetricCard>
       ) : null}
 
