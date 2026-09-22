@@ -371,7 +371,15 @@ body {
 .hq-realme-empty { display: grid; gap: 5px; margin-top: 18px; padding: 28px; border: 1px dashed var(--hq-border); border-radius: 10px; text-align: center; color: var(--hq-text-muted); }
 .hq-realme-empty strong { color: var(--hq-text); }
 .hq-lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 5vw; background: rgba(15, 23, 42, .72); cursor: zoom-out; }
-.hq-lightbox img { max-width: 92vw; max-height: 90vh; object-fit: contain; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.28); }
+.hq-lightbox__row { display: flex; gap: 20px; max-width: 92vw; max-height: 90vh; cursor: default; }
+.hq-lightbox__figure { margin: 0; display: grid; gap: 8px; justify-items: center; min-width: 0; }
+.hq-lightbox img { max-width: 88vw; max-height: 82vh; object-fit: contain; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.28); }
+.hq-lightbox__row .hq-lightbox__figure { flex: 1 1 0; }
+.hq-lightbox__row .hq-lightbox__figure img { max-width: 100%; }
+.hq-lightbox__figure figcaption { color: #f1f5f9; font-size: 12px; font-weight: 600; }
+.hq-lightbox__close { position: absolute; top: 18px; right: 22px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; line-height: 1; cursor: pointer; }
+.hq-lightbox__close:hover { background: rgba(255,255,255,.24); }
+.hq-realme-hint { margin: -6px 0 13px; color: var(--hq-text-faint); font-size: 10px; }
 @media (max-width: 900px) { .hq-realme-workspace, .hq-realme-review__columns { grid-template-columns: 1fr; } .hq-realme-queue { border-right: 0; border-bottom: 1px solid var(--hq-border); padding: 0 0 10px; display: flex; overflow-x: auto; } .hq-realme-queue__heading { display: none; } .hq-realme-queue__item { min-width: 180px; } }
 
 .hq-sidebar__footer {

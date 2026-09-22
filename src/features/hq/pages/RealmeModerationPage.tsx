@@ -31,7 +31,7 @@ export default function RealmeModerationPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; alt: string; caption?: string }[] | null>(null);
 
   const loadQueue = useCallback(() => {
     setLoad("loading");
@@ -53,6 +53,8 @@ export default function RealmeModerationPage() {
 
   const selected = useMemo(() => entries.find((entry) => entry.id === selectedId) ?? entries[0] ?? null, [entries, selectedId]);
   const context = selected?.review_context ?? null;
+  const memberName = context?.member.display_name ?? ([context?.member.first_name, context?.member.last_name].filter(Boolean).join(" ") || "Member");
+  const approvedPhotoForCompare = context?.profile_photos.find((photo) => photo.url) ?? null;
 
   const decide = useCallback((entry: HqRealmeQueueEntry, decision: HqRealmeDecision) => {
     let note: string | undefined;
@@ -122,13 +124,28 @@ export default function RealmeModerationPage() {
                       <div><dt>Trust Score</dt><dd>{context.member.trust_score ?? "—"}</dd></div>
                     </dl>
                     <div className="hq-realme-section-title">Approved profile photos</div>
-                    <div className="hq-realme-photo-grid">{context.profile_photos.length ? context.profile_photos.map((photo) => photo.url ? <button type="button" key={photo.id} onClick={() => setLightbox({ url: photo.url!, alt: "Approved profile photo" })}><img src={photo.url} alt="Approved profile" /></button> : null) : <span className="hq-card__subtitle">No approved profile photos available.</span>}</div>
+                    <div className="hq-realme-photo-grid">{context.profile_photos.length ? context.profile_photos.map((photo) => photo.url ? <button type="button" key={photo.id} onClick={() => setLightbox([{ url: photo.url!, alt: "Approved profile photo", caption: memberName }])}><img src={photo.url} alt="Approved profile" /></button> : null) : <span className="hq-card__subtitle">No approved profile photos available.</span>}</div>
+                    <p className="hq-realme-hint">Click any photo to enlarge.</p>
                     {context.member_360_lookup ? <Link className="hq-inline-link" to={`/hq/members/${encodeURIComponent(context.member_360_lookup)}`}>Open Member 360 →</Link> : null}
                   </> : <p className="hq-card__subtitle">Member context is unavailable for this submission. The signed evidence remains available for review.</p>}
                 </section>
                 <section className="hq-realme-panel hq-realme-panel--evidence">
                   <div className="hq-realme-panel__title"><span>{CHECK_TYPE_LABEL[selected.check_type]}</span><StatusBadge tone="warning">Pending review</StatusBadge></div>
-                  <div className="hq-realme-evidence">{(context?.evidence ?? selected.evidence) ? (selected.check_type === "video" ? <video src={(context?.evidence ?? selected.evidence)!.url} controls playsInline /> : <button type="button" onClick={() => setLightbox({ url: (context?.evidence ?? selected.evidence)!.url, alt: "Submitted RealMe evidence" })}><img src={(context?.evidence ?? selected.evidence)!.url} alt="Submitted RealMe evidence" /></button>) : <span>No evidence attached</span>}</div>
+                  <div className="hq-realme-evidence">{(context?.evidence ?? selected.evidence) ? (selected.check_type === "video" ? <video src={(context?.evidence ?? selected.evidence)!.url} controls playsInline /> : <button type="button" onClick={() => setLightbox([{ url: (context?.evidence ?? selected.evidence)!.url, alt: "Submitted RealMe evidence", caption: "Submitted evidence" }])}><img src={(context?.evidence ?? selected.evidence)!.url} alt="Submitted RealMe evidence" /></button>) : <span>No evidence attached</span>}</div>
+                  {selected.check_type !== "video" && (context?.evidence ?? selected.evidence) ? <p className="hq-realme-hint">Click evidence to enlarge.</p> : null}
+                  {selected.check_type !== "video" && (context?.evidence ?? selected.evidence) && approvedPhotoForCompare ? (
+                    <button
+                      type="button"
+                      className="hq-btn"
+                      style={{ marginBottom: 14 }}
+                      onClick={() => setLightbox([
+                        { url: (context?.evidence ?? selected.evidence)!.url, alt: "Submitted RealMe evidence", caption: "Submitted evidence" },
+                        { url: approvedPhotoForCompare!.url!, alt: "Approved profile photo", caption: `Approved photo — ${memberName}` },
+                      ])}
+                    >
+                      Compare side by side
+                    </button>
+                  ) : null}
                   <dl className="hq-realme-facts"><div><dt>Submitted</dt><dd>{formatWhen(selected.submitted_at)}</dd></div><div><dt>Method</dt><dd>{CHECK_TYPE_LABEL[selected.check_type]}</dd></div><div><dt>Previous attempts</dt><dd>{Math.max((context?.history.length ?? 1) - 1, 0)}</dd></div></dl>
                   <div className="hq-realme-actions"><button type="button" className="hq-btn hq-btn--danger" disabled={pendingId === selected.id} onClick={() => decide(selected, "rejected")}>Reject</button><button type="button" className="hq-btn" disabled={pendingId === selected.id} onClick={() => decide(selected, "resubmission_requested")}>Needs further review</button><button type="button" className="hq-btn hq-btn--primary" disabled={pendingId === selected.id} onClick={() => decide(selected, "approved")}>Approve</button></div>
                 </section>
@@ -138,7 +155,19 @@ export default function RealmeModerationPage() {
           </div>
         ) : null}
       </MetricCard>
-      {lightbox ? <div className="hq-lightbox" role="dialog" aria-label={lightbox.alt} onClick={() => setLightbox(null)}><img src={lightbox.url} alt={lightbox.alt} /></div> : null}
+      {lightbox ? (
+        <div className="hq-lightbox" role="dialog" aria-label="Enlarged evidence" onClick={() => setLightbox(null)}>
+          <div className="hq-lightbox__row" onClick={(event) => event.stopPropagation()}>
+            {lightbox.map((item, index) => (
+              <figure key={index} className="hq-lightbox__figure">
+                <img src={item.url} alt={item.alt} />
+                {item.caption ? <figcaption>{item.caption}</figcaption> : null}
+              </figure>
+            ))}
+          </div>
+          <button type="button" className="hq-lightbox__close" aria-label="Close" onClick={() => setLightbox(null)}>×</button>
+        </div>
+      ) : null}
     </div>
   );
 }
