@@ -815,6 +815,16 @@ function parseDeviceVersion(value: unknown): import("./types.ts").HqDeviceVersio
   };
 }
 
+function parseDeviceBrowser(value: unknown): import("./types.ts").HqDeviceBrowser {
+  const row = requireRecord(value, "device_browser");
+  return {
+    browser: requireString(row.browser, "device_browser_name"),
+    active_users: requireNumber(row.active_users, "device_browser_active_users"),
+    active_devices: requireNumber(row.active_devices, "device_browser_active_devices"),
+    last_seen_at: nullableString(row.last_seen_at),
+  };
+}
+
 export function parseHqDevices(data: unknown): import("./types.ts").HqDevicesResponse {
   const root = requireRecord(data, "devices");
   const platforms = requireRecord(root.platforms, "device_platforms");
@@ -827,6 +837,15 @@ export function parseHqDevices(data: unknown): import("./types.ts").HqDevicesRes
         active_users: requireNumber(row.active_users, "device_active_users"),
         active_devices: requireNumber(row.active_devices, "device_active_devices"),
         versions: row.versions.map(parseDeviceVersion),
+        browsers: Array.isArray(row.browsers) ? row.browsers.map(parseDeviceBrowser) : undefined,
+        first_seen_devices:
+          row.first_seen_devices === undefined
+            ? undefined
+            : requireNumber(row.first_seen_devices, "device_first_seen"),
+        push_capable_devices:
+          row.push_capable_devices === undefined
+            ? undefined
+            : requireNumber(row.push_capable_devices, "device_push_capable"),
       }];
     }),
   ) as import("./types.ts").HqDevicesResponse["platforms"];

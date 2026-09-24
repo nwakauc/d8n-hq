@@ -405,5 +405,84 @@ export function commandCentreRouteOk(url: string) {
       },
     });
   }
+  if (url.includes("/api/v1/hq/devices")) {
+    return json(200, {
+      window: "24h",
+      brand: "dateza",
+      generated_at: "2026-08-30T12:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      platforms: {
+        android: {
+          active_users: 2,
+          active_devices: 2,
+          first_seen_devices: 2,
+          push_capable_devices: 1,
+          versions: [{ version: "2.4.1", active_users: 2, active_devices: 2, last_seen_at: null }],
+          browsers: [],
+        },
+        ios: {
+          active_users: 0,
+          active_devices: 0,
+          first_seen_devices: 0,
+          push_capable_devices: 0,
+          versions: [],
+          browsers: [],
+        },
+        web: {
+          active_users: 4,
+          active_devices: 5,
+          first_seen_devices: 1,
+          push_capable_devices: 0,
+          versions: [{ version: null, active_users: 4, active_devices: 5, last_seen_at: null }],
+          browsers: [
+            { browser: "Chrome", active_users: 3, active_devices: 3, last_seen_at: null },
+            { browser: "Safari", active_users: 1, active_devices: 2, last_seen_at: null },
+          ],
+        },
+        other: {
+          active_users: 0,
+          active_devices: 0,
+          first_seen_devices: 0,
+          push_capable_devices: 0,
+          versions: [],
+          browsers: [],
+        },
+      },
+      rows: [],
+    });
+  }
+  if (url.includes("/api/v1/hq/notification_health")) {
+    const channel = (name: "push" | "email" | "sms", configured = true) => ({
+      channel: name,
+      configured,
+      status: configured ? "unknown" : "not_configured",
+      provider: configured ? ["expo"] : [],
+      attempted: configured ? 4 : 0,
+      queued: 0,
+      processing: 0,
+      provider_accepted: configured ? 3 : 0,
+      failed: configured ? 1 : 0,
+      skipped: 0,
+      delivery_receipts: "not_captured",
+      delivery_rate: null,
+      failure_rate: null,
+      failure_reasons: {},
+      last_failure_at: null,
+      message: configured
+        ? "Provider acceptance is measured. Delivery receipts are not captured."
+        : "No delivery attempts were recorded in this window.",
+    });
+    return json(200, {
+      window: "24h",
+      brand: "dateza",
+      generated_at: "2026-08-30T12:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      channels: {
+        push: channel("push"),
+        email: channel("email"),
+        sms: channel("sms", false),
+      },
+    });
+  }
   return undefined;
 }

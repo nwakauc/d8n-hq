@@ -198,6 +198,7 @@ export function FounderOverview({
               <div className="founder-col-3">
                 <FounderNotificationHealth
                   data={data.notificationHealth}
+                  devices={data.devices}
                   error={data.notificationHealthError}
                   rollingWindow={rollingWindow}
                 />

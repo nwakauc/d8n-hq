@@ -40,14 +40,28 @@ describe("operational HQ contracts", () => {
       generated_at: "2026-09-21T10:00:00Z",
       time_zone: "Africa/Johannesburg",
       platforms: {
-        android: { active_users: 2, active_devices: 2, versions: [{ version: "2.4.1", active_users: 2, active_devices: 2, last_seen_at: null }] },
+        android: {
+          active_users: 2,
+          active_devices: 2,
+          first_seen_devices: 2,
+          push_capable_devices: 2,
+          versions: [{ version: "2.4.1", active_users: 2, active_devices: 2, last_seen_at: null }],
+        },
         ios: { active_users: 0, active_devices: 0, versions: [] },
-        web: { active_users: 1, active_devices: 1, versions: [{ version: null, active_users: 1, active_devices: 1, last_seen_at: null }] },
+        web: {
+          active_users: 1,
+          active_devices: 1,
+          versions: [{ version: null, active_users: 1, active_devices: 1, last_seen_at: null }],
+          browsers: [{ browser: "Chrome", active_users: 1, active_devices: 1, last_seen_at: null }],
+        },
         other: { active_users: 0, active_devices: 0, versions: [] },
       },
       rows: [],
     });
     expect(result.platforms.android.versions[0]?.version).toBe("2.4.1");
+    expect(result.platforms.web.browsers?.[0]?.browser).toBe("Chrome");
+    expect(result.platforms.android.first_seen_devices).toBe(2);
+    expect(result.platforms.android.push_capable_devices).toBe(2);
   });
 
   it("does not turn missing notification receipts into delivered counts", () => {

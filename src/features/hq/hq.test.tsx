@@ -897,7 +897,14 @@ describe("D8N HQ Phase 1 integration", () => {
     expect(await screen.findByRole("heading", { name: /Marketplace pools/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Retention/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Devices & platforms/i })).toBeInTheDocument();
+    expect(await screen.findByText(/Android phones on the website count as web/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Android app/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Chrome")).toBeInTheDocument();
+    expect(screen.getByText(/Android app first seen this window/i)).toBeInTheDocument();
+    expect(screen.getByText(/Android app devices registered for push this window/i)).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Notification health/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/4 attempted/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: /Open Expo push/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Recent errors/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Recent reports/i })).toBeInTheDocument();
     expect(await screen.findByText(/Company pulse/i)).toBeInTheDocument();

@@ -23,6 +23,7 @@ import type { OperationalWindow } from "../commandCentreWindows.ts";
 import { UNSUPPORTED_OPERATIONAL_WINDOW } from "../commandCentreWindows.ts";
 import type { CommandCentreData, CommandCentreLoadState } from "../hooks/useCommandCentreData.ts";
 import { DailyRegistrationsPanel } from "../analytics/DailyRegistrationsPanel.tsx";
+import { playConsoleUrlForBrand } from "../founder/playConsole.ts";
 
 const SCORE_LABELS = ["Growth", "Product", "Revenue", "Customer", "Safety", "System"] as const;
 const PRIMARY_WINDOWS = ["today", "last_7d", "last_30d"] as const;
@@ -193,6 +194,7 @@ export function CommandCentreOpsDashboard({
 }) {
   const health = data.health;
   const alertCount = data.alerts?.alerts.length ?? 0;
+  const playConsole = playConsoleUrlForBrand(data.devices?.brand);
 
   return (
     <div className="hq-content hq-content--with-rail">
@@ -491,14 +493,42 @@ export function CommandCentreOpsDashboard({
             ) : data.devices ? (
               <>
                 <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
-                  Rolling {data.devices.window} · {data.devices.brand} · {data.devices.time_zone}
+                  Rolling {data.devices.window} · {data.devices.brand} · {data.devices.time_zone}. Web
+                  includes phones in the browser; Android app is native only.
                 </p>
                 <StatGroup
                   items={Object.entries(data.devices.platforms).map(([platform, summary]) => ({
-                    label: platform,
+                    label:
+                      platform === "web"
+                        ? "Web"
+                        : platform === "android"
+                          ? "Android app"
+                          : platform === "ios"
+                            ? "iOS app"
+                            : "Other",
                     value: `${summary.active_users.toLocaleString("en-ZA")} users · ${summary.active_devices.toLocaleString("en-ZA")} devices`,
                   }))}
                 />
+                {data.devices.platforms.web.browsers && data.devices.platforms.web.browsers.length > 0 ? (
+                  <p className="hq-card__subtitle" style={{ marginTop: 10 }}>
+                    Browsers:{" "}
+                    {data.devices.platforms.web.browsers
+                      .map((browser) => `${browser.browser} ${browser.active_users.toLocaleString("en-ZA")}`)
+                      .join(" · ")}
+                  </p>
+                ) : null}
+                <p className="hq-card__subtitle" style={{ marginTop: 8 }}>
+                  Android app first seen this window:{" "}
+                  {(data.devices.platforms.android.first_seen_devices ?? 0).toLocaleString("en-ZA")}
+                  . Push-capable:{" "}
+                  {(data.devices.platforms.android.push_capable_devices ?? 0).toLocaleString("en-ZA")}
+                  . D8N sightings, not Play Store totals.
+                </p>
+                {playConsole ? (
+                  <a className="hq-inline-link" href={playConsole} target="_blank" rel="noreferrer">
+                    Open Play Console installs
+                  </a>
+                ) : null}
               </>
             ) : !rollingWindow ? (
               <UnavailableState

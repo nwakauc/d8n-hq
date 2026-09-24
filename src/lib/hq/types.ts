@@ -693,10 +693,20 @@ export type HqDeviceVersion = {
   last_seen_at: string | null;
 };
 
+export type HqDeviceBrowser = {
+  browser: string;
+  active_users: number;
+  active_devices: number;
+  last_seen_at: string | null;
+};
+
 export type HqDevicePlatform = {
   active_users: number;
   active_devices: number;
   versions: HqDeviceVersion[];
+  browsers?: HqDeviceBrowser[];
+  first_seen_devices?: number;
+  push_capable_devices?: number;
 };
 
 export type HqDevicesResponse = {

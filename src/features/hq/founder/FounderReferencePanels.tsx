@@ -15,6 +15,7 @@ import { FounderIcon, FounderIconBadge, type FounderIconName } from "./founderIc
 import { humanizeSecurityEvent } from "./securityEventLabels.ts";
 import { FounderHorizontalBars } from "./charts/FounderCharts.tsx";
 import { serviceProviderHref, thirdPartyProviderName, providerHref } from "./systemHealthProviders.ts";
+import { EXPO_PUSH_CONSOLE_URL, playConsoleUrlForBrand } from "./playConsole.ts";
 
 /** Panels below render the reference layout's full visual shell — chart frames,
  * tabs, rows — with every value left null/"needs backend" rather than invented,
@@ -174,12 +175,18 @@ export function FounderRetention() {
   );
 }
 
-const DEVICE_ROWS: Array<{ label: string; icon: FounderIconName }> = [
-  { label: "Android", icon: "activity" },
-  { label: "iOS", icon: "activity" },
-  { label: "Web", icon: "eye" },
-  { label: "Other", icon: "info" },
-];
+const DEVICE_ORDER = ["web", "android", "ios", "other"] as const;
+
+function platformLabel(platform: string): string {
+  if (platform === "web") return "Web";
+  if (platform === "android") return "Android app";
+  if (platform === "ios") return "iOS app";
+  return "Other";
+}
+
+function platformCounts(summary: { active_users: number; active_devices: number }) {
+  return `${summary.active_users.toLocaleString("en-ZA")} users · ${summary.active_devices.toLocaleString("en-ZA")} devices`;
+}
 
 function healthLabel(status: HqHealthStatus): string {
   return status.replace(/_/g, " ");
@@ -199,20 +206,32 @@ export function FounderDevicesAndPlatforms({
   rollingWindow: OperationalWindow | null;
 }) {
   const platformRows = data
-    ? Object.entries(data.platforms).map(([platform, summary]) => ({
+    ? DEVICE_ORDER.map((platform) => {
+        const summary = data.platforms[platform];
+        return {
+          key: platform,
+          label: platformLabel(platform),
+          value: summary.active_users,
+          max: Math.max(...DEVICE_ORDER.map((name) => data.platforms[name].active_users), 1),
+          tone: platform === "android" ? "#16a34a" : "#2563eb",
+        };
+      })
+    : DEVICE_ORDER.map((platform) => ({
         key: platform,
-        label: platform === "ios" ? "iOS" : platform[0].toUpperCase() + platform.slice(1),
-        value: summary.active_users,
-        max: Math.max(...Object.values(data.platforms).map((entry) => entry.active_users), 1),
+        label: platformLabel(platform),
+        value: null,
+        max: 1,
         tone: "#2563eb",
-      }))
-    : DEVICE_ROWS.map((row) => ({ key: row.label, label: row.label, value: null, max: 1, tone: "#2563eb" }));
+      }));
+  const web = data?.platforms.web;
+  const android = data?.platforms.android;
+  const playConsole = playConsoleUrlForBrand(data?.brand);
   return (
     <CoveragePanel
       title="Devices & platforms"
       subtitle={
         data
-          ? `Active users and devices in a rolling ${data.window} window.`
+          ? `Web browsers vs native apps in a rolling ${data.window} window. Android phones on the website count as web.`
           : "Active product surfaces and app versions."
       }
       icon="search"
@@ -230,16 +249,45 @@ export function FounderDevicesAndPlatforms({
         rows={platformRows}
       />
       {error ? <p className="founder-panel__error">{error}</p> : null}
+      {web?.browsers && web.browsers.length > 0 ? (
+        <ul className="founder-device-breakdown">
+          {web.browsers.map((browser) => (
+            <li key={browser.browser}>
+              <span>{browser.browser}</span>
+              <strong>{platformCounts(browser)}</strong>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {android ? (
+        <p className="founder-device-installs">
+          Android app first seen this window:{" "}
+          <strong>{(android.first_seen_devices ?? 0).toLocaleString("en-ZA")}</strong>
+          . Push-capable:{" "}
+          <strong>{(android.push_capable_devices ?? 0).toLocaleString("en-ZA")}</strong>
+          . Those are D8N device sightings, not Play Store install totals.
+        </p>
+      ) : null}
+      {playConsole ? (
+        <a className="founder-link-arrow" href={playConsole} target="_blank" rel="noreferrer">
+          Open Play Console installs
+        </a>
+      ) : null}
       {data ? (
         <div className="founder-device-versions">
-          {Object.entries(data.platforms).flatMap(([platform, summary]) => summary.versions.map((version) => (
-            <span key={`${platform}-${version.version ?? "unknown"}`}>
-              {platform} · {version.version ?? "Version not reported"} · {version.active_users.toLocaleString("en-ZA")} users
-            </span>
-          ))).slice(0, 6)}
+          {DEVICE_ORDER.flatMap((platform) =>
+            data.platforms[platform].versions.map((version) => (
+              <span key={`${platform}-${version.version ?? "unknown"}`}>
+                {platformLabel(platform)} · {version.version ?? "Version not reported"} ·{" "}
+                {version.active_users.toLocaleString("en-ZA")} users
+              </span>
+            )),
+          ).slice(0, 8)}
           {data.rows.length === 0 ? <span>No client activity recorded in this window.</span> : null}
         </div>
-      ) : !error && rollingWindow ? <NeedsBackendNote>Loading device telemetry…</NeedsBackendNote> : null}
+      ) : !error && rollingWindow ? (
+        <NeedsBackendNote>Loading device telemetry…</NeedsBackendNote>
+      ) : null}
     </CoveragePanel>
   );
 }
@@ -252,10 +300,12 @@ const NOTIFICATION_CHANNELS: Array<{ label: string; icon: FounderIconName }> = [
 
 export function FounderNotificationHealth({
   data,
+  devices,
   error,
   rollingWindow,
 }: {
   data: HqNotificationHealthResponse | null;
+  devices?: HqDevicesResponse | null;
   error: string | null;
   rollingWindow: OperationalWindow | null;
 }) {
@@ -264,7 +314,7 @@ export function FounderNotificationHealth({
       title="Notification health"
       subtitle={
         data
-          ? `Provider acceptance in a rolling ${data.window} window. Delivery receipts are not captured.`
+          ? `Push, email, and SMS provider acceptance in a rolling ${data.window} window. Delivery receipts are not captured.`
           : "Delivery health by channel."
       }
       icon="message-circle"
@@ -289,6 +339,9 @@ export function FounderNotificationHealth({
                 <>
                   <span className="founder-notification-list__stat">
                     <i className={`founder-status-dot founder-status-dot--${metric.status === "healthy" ? "good" : "warn"}`} />
+                    {metric.attempted.toLocaleString("en-ZA")} attempted
+                  </span>
+                  <span className="founder-notification-list__stat">
                     Accepted {metric.provider_accepted.toLocaleString("en-ZA")}
                   </span>
                   <span className="founder-notification-list__stat founder-notification-list__stat--muted">
@@ -301,8 +354,24 @@ export function FounderNotificationHealth({
         ))}
       </ul>
       {error ? <p className="founder-panel__error">{error}</p> : null}
-      {data ? <p className="founder-reference-empty founder-reference-empty--note">Provider acceptance is measured. Delivery receipts are not captured yet.</p> : null}
+      {devices?.platforms.android ? (
+        <p className="founder-device-installs">
+          Android app devices registered for push this window:{" "}
+          <strong>{(devices.platforms.android.push_capable_devices ?? 0).toLocaleString("en-ZA")}</strong>
+        </p>
+      ) : null}
+      {data ? (
+        <p className="founder-reference-empty founder-reference-empty--note">
+          Push uses {data.channels.push.provider.join(", ") || "no recorded provider"}. Provider
+          acceptance is measured. Delivery receipts are not captured yet.
+        </p>
+      ) : null}
       {!data && !error && rollingWindow ? <NeedsBackendNote>Loading notification telemetry…</NeedsBackendNote> : null}
+      {data?.channels.push.configured ? (
+        <a className="founder-link-arrow" href={EXPO_PUSH_CONSOLE_URL} target="_blank" rel="noreferrer">
+          Open Expo push
+        </a>
+      ) : null}
       {data ? <Link className="founder-link-arrow" to="/hq/notifications">View delivery logs</Link> : null}
     </CoveragePanel>
   );
