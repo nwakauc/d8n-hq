@@ -1,7 +1,11 @@
 import {
   Bar,
   BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -22,7 +26,7 @@ type DonutSegment = {
 
 export type PulseGroupedBarRow = {
   window: string;
-  [seriesKey: string]: number | string;
+  [seriesKey: string]: number | string | null;
 };
 
 export type PulseSeriesSpec = { key: string; label: string; color: string };
@@ -77,7 +81,7 @@ export function FounderPulseGroupedBarChart({
       <figcaption className="visually-hidden">
         {rows
           .map((row) =>
-            `${row.window}: ${series.map((spec) => `${spec.label} ${row[spec.key]}`).join(", ")}`,
+            `${row.window}: ${series.map((spec) => `${spec.label} ${row[spec.key] ?? "unavailable"}`).join(", ")}`,
           )
           .join("; ")}
       </figcaption>
@@ -179,6 +183,87 @@ export function FounderHorizontalBars({
         })}
       </ul>
     </figure>
+  );
+}
+
+export type LineTrendSeries = {
+  id: string;
+  label: string;
+  color: string;
+  yAxisId?: "left" | "right";
+};
+
+export function FounderLineTrendsChart({
+  rows,
+  series,
+  ariaLabel,
+  height = 240,
+  onPointClick,
+}: {
+  rows: Array<{ label: string; date?: string; [key: string]: string | number | null | undefined }>;
+  series: readonly LineTrendSeries[];
+  ariaLabel: string;
+  height?: number;
+  onPointClick?: (date: string) => void;
+}) {
+  const splitAxis = series.some((spec) => spec.yAxisId === "right");
+
+  return (
+    <div className="founder-marketplace-trends__chart" aria-label={ariaLabel}>
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart
+          data={rows}
+          margin={{ top: 12, right: splitAxis ? 8 : 10, left: -18, bottom: 0 }}
+          onClick={
+            onPointClick
+              ? (state) => {
+                  const date = state?.activePayload?.[0]?.payload?.date;
+                  if (typeof date === "string") onPointClick(date);
+                }
+              : undefined
+          }
+          style={onPointClick ? { cursor: "pointer" } : undefined}
+        >
+          <CartesianGrid vertical={false} stroke="#edf0f5" />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
+          <YAxis
+            yAxisId="left"
+            allowDecimals={false}
+            tickLine={false}
+            axisLine={false}
+            fontSize={11}
+          />
+          {splitAxis ? (
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              allowDecimals={false}
+              tickLine={false}
+              axisLine={false}
+              fontSize={11}
+            />
+          ) : null}
+          <Tooltip
+            formatter={(value, name) => [Number(value).toLocaleString("en-ZA"), String(name)]}
+          />
+          <Legend iconType="circle" iconSize={8} />
+          {series.map((spec) => (
+            <Line
+              key={spec.id}
+              type="monotone"
+              dataKey={spec.id}
+              name={spec.label}
+              stroke={spec.color}
+              strokeWidth={2}
+              yAxisId={spec.yAxisId ?? "left"}
+              dot={false}
+              activeDot={{ r: 4 }}
+              isAnimationActive={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import type {
   HqSystemHealthResponse,
   HqVersionInfo,
 } from "../../../lib/hq/types.ts";
+import { UNSUPPORTED_OPERATIONAL_WINDOW, type OperationalWindow } from "../commandCentreWindows.ts";
 import { formatRelativeTime } from "./formatRelativeTime.ts";
 import { FounderIcon, FounderIconBadge, type FounderIconName } from "./founderIcons.tsx";
 import { humanizeSecurityEvent } from "./securityEventLabels.ts";
@@ -85,14 +86,14 @@ export function FounderLiveActivity({
       <header className="founder-panel__heading">
         <div>
           <h2 className="founder-panel__title">Live activity</h2>
-          <p className="founder-panel__subtitle">Operational events currently available to HQ.</p>
+          <p className="founder-panel__subtitle">Security events HQ can see right now.</p>
         </div>
         <span className="founder-live-activity__status"><i /> Live</span>
       </header>
       {error ? <p className="founder-panel__error">{error}</p> : null}
       {!error && rows.length > 0 ? (
         <ul className="founder-activity-list">
-          {rows.slice(0, 7).map((row) => (
+          {rows.slice(0, 4).map((row) => (
             <li key={`${row.event_type}-${row.created_at}`} className="founder-activity-list__row">
               <span className="founder-activity-list__icon" aria-hidden="true"><FounderIcon name="alert-triangle" size={14} /></span>
               <span className="founder-activity-list__body">
@@ -190,9 +191,11 @@ function healthClass(status: HqHealthStatus): string {
 export function FounderDevicesAndPlatforms({
   data,
   error,
+  rollingWindow,
 }: {
   data: HqDevicesResponse | null;
   error: string | null;
+  rollingWindow: OperationalWindow | null;
 }) {
   const platformRows = data
     ? Object.entries(data.platforms).map(([platform, summary]) => ({
@@ -204,8 +207,23 @@ export function FounderDevicesAndPlatforms({
       }))
     : DEVICE_ROWS.map((row) => ({ key: row.label, label: row.label, value: null, max: 1, tone: "#2563eb" }));
   return (
-    <CoveragePanel title="Devices & platforms" subtitle="Active product surfaces and app versions." icon="search" tone="green">
-      <p className="founder-today__scope">Brand scope: {data?.brand ?? "loading"}</p>
+    <CoveragePanel
+      title="Devices & platforms"
+      subtitle={
+        data
+          ? `Active users and devices in a rolling ${data.window} window.`
+          : "Active product surfaces and app versions."
+      }
+      icon="search"
+      tone="green"
+    >
+      <p className="founder-today__scope">
+        Brand scope: {data?.brand ?? "current brand"}
+        {data ? ` · API window ${data.window}` : rollingWindow ? ` · requested ${rollingWindow}` : ""}
+      </p>
+      {!rollingWindow && !data && !error ? (
+        <NeedsBackendNote>{UNSUPPORTED_OPERATIONAL_WINDOW}</NeedsBackendNote>
+      ) : null}
       <FounderHorizontalBars
         ariaLabel="Devices and platforms"
         rows={platformRows}
@@ -220,7 +238,7 @@ export function FounderDevicesAndPlatforms({
           ))).slice(0, 6)}
           {data.rows.length === 0 ? <span>No client activity recorded in this window.</span> : null}
         </div>
-      ) : !error ? <NeedsBackendNote>Loading device telemetry…</NeedsBackendNote> : null}
+      ) : !error && rollingWindow ? <NeedsBackendNote>Loading device telemetry…</NeedsBackendNote> : null}
     </CoveragePanel>
   );
 }
@@ -234,12 +252,26 @@ const NOTIFICATION_CHANNELS: Array<{ label: string; icon: FounderIconName }> = [
 export function FounderNotificationHealth({
   data,
   error,
+  rollingWindow,
 }: {
   data: HqNotificationHealthResponse | null;
   error: string | null;
+  rollingWindow: OperationalWindow | null;
 }) {
   return (
-    <CoveragePanel title="Notification health" subtitle="Delivery health by channel." icon="message-circle" tone="amber">
+    <CoveragePanel
+      title="Notification health"
+      subtitle={
+        data
+          ? `Provider acceptance in a rolling ${data.window} window. Delivery receipts are not captured.`
+          : "Delivery health by channel."
+      }
+      icon="message-circle"
+      tone="amber"
+    >
+      {!rollingWindow && !data && !error ? (
+        <NeedsBackendNote>{UNSUPPORTED_OPERATIONAL_WINDOW}</NeedsBackendNote>
+      ) : null}
       <ul className="founder-notification-list">
         {NOTIFICATION_CHANNELS.map((channel) => (
           <li key={channel.label} className="founder-notification-list__row">
@@ -269,7 +301,7 @@ export function FounderNotificationHealth({
       </ul>
       {error ? <p className="founder-panel__error">{error}</p> : null}
       {data ? <p className="founder-reference-empty founder-reference-empty--note">Provider acceptance is measured. Delivery receipts are not captured yet.</p> : null}
-      {!data && !error ? <NeedsBackendNote>Loading notification telemetry…</NeedsBackendNote> : null}
+      {!data && !error && rollingWindow ? <NeedsBackendNote>Loading notification telemetry…</NeedsBackendNote> : null}
       {data ? <Link className="founder-link-arrow" to="/hq/notifications">View delivery logs</Link> : null}
     </CoveragePanel>
   );
@@ -373,9 +405,8 @@ export function FounderRecentReports() {
         </div>
         <div className="founder-error-table__empty" role="row">
           <span role="cell" className="founder-reference-empty founder-reference-empty--large">
-            Needs backend implementation: there is no paginated reports list under the HQ API yet —
-            only aggregate counts (shown in Trust &amp; Safety below). The report data itself
-            (reason, evidence, reporter/reported profile) already exists.
+            Report rows live in Trust &amp; Safety → Reports (admin reports queue). This card does
+            not duplicate that queue or invent a second list.
           </span>
         </div>
       </div>

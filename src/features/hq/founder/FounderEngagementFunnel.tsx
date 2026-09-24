@@ -50,10 +50,19 @@ export function FounderEngagementFunnel({
                 <span>{stage.definition}</span>
               </div>
               <div className="founder-funnel__bar" aria-hidden="true">
-                <span style={{ width: `${Math.max(0, Math.min(100, (stage.conversion_from_registration ?? 0) * 100))}%` }} />
+                <span
+                  style={{
+                    width:
+                      stage.status === "available" && stage.conversion_from_registration !== null
+                        ? `${Math.max(0, Math.min(100, stage.conversion_from_registration * 100))}%`
+                        : "0%",
+                  }}
+                />
               </div>
               <strong className="founder-funnel__value">
-                {stage.status === "available" ? (stage.value ?? 0).toLocaleString("en-ZA") : "Unavailable"}
+                {stage.status === "available" && typeof stage.value === "number"
+                  ? stage.value.toLocaleString("en-ZA")
+                  : "Unavailable"}
               </strong>
               <span className="founder-funnel__conversion">{percentage(stage.conversion_from_registration)} of registrations</span>
             </div>

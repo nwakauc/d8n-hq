@@ -15,6 +15,7 @@ import {
   parseHqNotificationHealth,
   parseHqSystemHealth,
   parseHqAttention,
+  parseAdminReport,
 } from "./parse.ts";
 
 describe("operational HQ contracts", () => {
@@ -284,6 +285,7 @@ const member360Fixture = {
       recent_conversations: [],
       blocks_given: 0,
       blocks_received: 0,
+      private_media: { albums: 0, active_grants: 0, photos: 0, videos: 0, reports: 0 },
     },
     comms: {
       delivery_counts_by_status: { sent: 2 },
@@ -420,5 +422,32 @@ describe("parseIdentityCorrectionResponse", () => {
     });
     expect(correction.field).toBe("gender");
     expect(correction.new_value).toBe("woman");
+  });
+});
+
+describe("parseAdminReport", () => {
+  function report(target_type: string) {
+    return {
+      id: 9,
+      status: "open",
+      reason: "other",
+      target_type,
+      evidence: {},
+      reporter: { id: "1", display_name: "Ada" },
+      reported: { id: "2", display_name: "Bolu" },
+      note: null,
+      resolution_note: null,
+      reviewed_by_admin_user_id: null,
+      reviewed_at: null,
+      created_at: "2026-09-21T10:00:00Z",
+      updated_at: "2026-09-21T10:00:00Z",
+    };
+  }
+
+  it("accepts private album report targets", () => {
+    expect(parseAdminReport({ report: report("private_album") }).target_type).toBe("private_album");
+    expect(parseAdminReport({ report: report("private_album_item") }).target_type).toBe(
+      "private_album_item",
+    );
   });
 });

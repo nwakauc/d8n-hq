@@ -28,6 +28,7 @@ import type {
   HqVersionInfo,
   HqSystemHealthResponse,
 } from "../../../lib/hq/types.ts";
+import { operationalWindow } from "../commandCentreWindows.ts";
 
 export type CommandCentreLoadState = "loading" | "ready";
 
@@ -84,13 +85,6 @@ const EMPTY_DATA: CommandCentreData = {
   notificationHealthError: null,
   systemHealthError: null,
 };
-
-function operationalWindow(timeRange: string): string {
-  if (timeRange === "today") return "24h";
-  if (timeRange === "last_7d") return "7d";
-  if (timeRange === "last_30d") return "30d";
-  return "24h";
-}
 
 export function useCommandCentreData({
   canAnalytics,
@@ -174,24 +168,26 @@ export function useCommandCentreData({
             next.productTrendsError = hqErrorMessage(error);
           }),
       );
-      tasks.push(
-        fetchHqDevices(window)
-          .then((devices) => {
-            next.devices = devices;
-          })
-          .catch((error) => {
-            next.devicesError = hqErrorMessage(error);
-          }),
-      );
-      tasks.push(
-        fetchHqNotificationHealth(window)
-          .then((notificationHealth) => {
-            next.notificationHealth = notificationHealth;
-          })
-          .catch((error) => {
-            next.notificationHealthError = hqErrorMessage(error);
-          }),
-      );
+      if (window) {
+        tasks.push(
+          fetchHqDevices(window)
+            .then((devices) => {
+              next.devices = devices;
+            })
+            .catch((error) => {
+              next.devicesError = hqErrorMessage(error);
+            }),
+        );
+        tasks.push(
+          fetchHqNotificationHealth(window)
+            .then((notificationHealth) => {
+              next.notificationHealth = notificationHealth;
+            })
+            .catch((error) => {
+              next.notificationHealthError = hqErrorMessage(error);
+            }),
+        );
+      }
     }
     if (canAlerts) {
       tasks.push(
@@ -265,5 +261,6 @@ export function useCommandCentreData({
     data,
     partialErrors,
     refresh,
+    operationalWindow: operationalWindow(timeRange),
   };
 }

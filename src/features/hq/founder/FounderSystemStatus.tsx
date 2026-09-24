@@ -29,7 +29,14 @@ export function FounderSystemStatus({
         aria-controls={popoverId}
         onClick={() => setOpen((value) => !value)}
       >
-        {healthy ? "System healthy" : "System status"}
+        {healthy ? (
+          <>
+            <span className="founder-system-status__dot" aria-hidden="true" />
+            Live
+          </>
+        ) : (
+          "Status"
+        )}
       </button>
       {open ? (
         <span id={popoverId} role="dialog" className="founder-system-status__popover">

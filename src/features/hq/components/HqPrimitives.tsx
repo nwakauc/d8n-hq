@@ -141,6 +141,10 @@ export function StatGroup({
   );
 }
 
+export function PageToolbar({ children }: { children: ReactNode }) {
+  return <div className="hq-page-toolbar">{children}</div>;
+}
+
 export function DataTable({
   columns,
   rows,
@@ -155,7 +159,11 @@ export function DataTable({
   wrapClassName?: string;
 }) {
   if (rows.length === 0) {
-    return <p className="hq-loading">{empty ?? "No rows."}</p>;
+    return (
+      <p className="hq-table-empty" role="status">
+        {empty ?? "No rows."}
+      </p>
+    );
   }
   const tableClass = tableClassName ? `hq-table ${tableClassName}` : "hq-table";
   const wrapClass = wrapClassName ? `hq-table-wrap ${wrapClassName}` : "hq-table-wrap";

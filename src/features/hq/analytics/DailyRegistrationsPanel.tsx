@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { HqRegistrationTrendResponse } from "../../../lib/hq/types.ts";
+import { FounderLineTrendsChart } from "../founder/charts/FounderCharts.tsx";
 import { memberCohortPath } from "./analyticsTypes.ts";
+import { splitRegistrationAxes } from "./registrationChart.ts";
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
@@ -20,14 +21,24 @@ export function DailyRegistrationsPanel({
 }) {
   const navigate = useNavigate();
   if (loading) {
-    return <section className="hq-card hq-analytics-panel"><h2>Daily registrations</h2><p>Loading registration history…</p></section>;
+    return (
+      <section className="hq-card hq-analytics-panel">
+        <h2>Daily registrations</h2>
+        <p>Loading registration history…</p>
+      </section>
+    );
   }
   if (!data) {
-    return <section className="hq-card hq-analytics-panel"><h2>Daily registrations</h2><p>Registration history is unavailable for this operator.</p></section>;
+    return (
+      <section className="hq-card hq-analytics-panel">
+        <h2>Daily registrations</h2>
+        <p>Registration history is unavailable for this operator.</p>
+      </section>
+    );
   }
 
   // Always every brand this admin can see — this endpoint is cross-brand by
-  // design (Hq::CommandCentre::RegistrationTrends is admin_user-scoped, not
+  // design (Hq::CommandCentre::RegistrationTrends is admin-user-scoped, not
   // Current.brand-scoped), unlike the rest of the dashboard which reflects
   // only the brand you're signed into. No brand picker needed here.
   const series = data.brands;
@@ -37,52 +48,45 @@ export function DailyRegistrationsPanel({
     label: formatDate(date),
     ...Object.fromEntries(series.map((brand) => [brand.brand, brand.points[date] ?? 0])),
   }));
+  const axes = splitRegistrationAxes(
+    series.map((brand) => brand.brand),
+    chartRows,
+  );
+  const splitAxis = Object.values(axes).includes("right");
 
   return (
     <section className="hq-card hq-analytics-panel" aria-labelledby="daily-registrations-title">
       <div className="hq-analytics-panel__header">
         <div>
           <h2 id="daily-registrations-title">Daily registrations</h2>
-          <p className="hq-card__subtitle">Kept brand memberships created on each local calendar date.</p>
+          <p className="hq-card__subtitle">
+            Cross-brand kept memberships created on each {data.time_zone} calendar date. Clicking a day
+            opens the member directory on the signed-in brand only.
+            {splitAxis ? " The largest brand uses the right axis so the other lines stay visible." : null}
+          </p>
         </div>
-        <span className="hq-analytics-panel__definition">Real membership timestamps · {data.time_zone}</span>
+        <span className="hq-analytics-panel__definition">
+          {data.definition} · {data.time_zone}
+        </span>
       </div>
       {dates.length === 0 ? (
         <p>No registrations in this period.</p>
       ) : (
         <>
-          <div className="hq-registration-chart" aria-label="Daily registrations chart">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartRows} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#edf0f5" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={11} />
-                <Tooltip
-                  labelFormatter={(label) => String(label)}
-                  formatter={(value, name) => [Number(value).toLocaleString("en-ZA"), String(name)]}
-                />
-                {series.map((brand, index) => (
-                  <Bar
-                    key={brand.brand}
-                    dataKey={brand.brand}
-                    stackId="registrations"
-                    fill={CHART_COLORS[index % CHART_COLORS.length]}
-                    radius={index === series.length - 1 ? [3, 3, 0, 0] : undefined}
-                    onClick={(entry) => navigate(memberCohortPath(entry.date))}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="hq-registration-legend">
-            {series.map((brand, index) => (
-              <span key={brand.brand}>
-                <i style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
-                {brand.brand} · {brand.total.toLocaleString("en-ZA")}
-              </span>
-            ))}
-            <span className="hq-registration-legend__hint">Click a bar to inspect that day’s members.</span>
-          </div>
+          <FounderLineTrendsChart
+            ariaLabel="Daily registrations chart"
+            rows={chartRows}
+            series={series.map((brand, index) => ({
+              id: brand.brand,
+              label: `${brand.brand} · ${brand.total.toLocaleString("en-ZA")}`,
+              color: CHART_COLORS[index % CHART_COLORS.length],
+              yAxisId: axes[brand.brand],
+            }))}
+            onPointClick={(date) => navigate(memberCohortPath(date))}
+          />
+          <p className="hq-registration-legend__hint">
+            Click a day to inspect that day’s members on the current brand.
+          </p>
         </>
       )}
     </section>

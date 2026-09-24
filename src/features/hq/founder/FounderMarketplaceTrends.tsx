@@ -1,5 +1,5 @@
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { HqProductTrends } from "../../../lib/hq/types.ts";
+import { FounderLineTrendsChart } from "./charts/FounderCharts.tsx";
 import { FounderIconBadge } from "./founderIcons.tsx";
 
 const SERIES = [
@@ -49,24 +49,22 @@ export function FounderMarketplaceTrends({
       <div className="founder-panel__heading">
         <div>
           <h2 id="marketplace-trends-title" className="founder-panel__title">Marketplace trends</h2>
-          <p className="founder-panel__subtitle">Likes, matches and conversations over {trends.window.replace(/_/g, " ")}.</p>
+          <p className="founder-panel__subtitle">
+            Kept likes, matches and conversations per Johannesburg calendar date over{" "}
+            {trends.window.replace(/_/g, " ")}. Days without a recorded count render as 0.
+          </p>
         </div>
         <FounderIconBadge name="heart-handshake" tone="rose" />
       </div>
-      <div className="founder-marketplace-trends__chart">
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={rows} margin={{ top: 12, right: 10, left: -18, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#edf0f5" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-            <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={11} />
-            <Tooltip formatter={(value, name) => [Number(value).toLocaleString("en-ZA"), String(name)]} />
-            <Legend iconType="circle" iconSize={8} />
-            {available.map((spec) => (
-              <Line key={spec.id} type="monotone" dataKey={spec.id} name={spec.label} stroke={spec.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <FounderLineTrendsChart
+        ariaLabel="Marketplace trends chart"
+        rows={rows}
+        series={available.map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          color: spec.color,
+        }))}
+      />
     </section>
   );
 }

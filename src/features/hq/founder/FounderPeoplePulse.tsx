@@ -30,7 +30,9 @@ export function FounderActiveUsers({ analytics }: { analytics: HqAnalyticsOvervi
       <div className="founder-panel__heading">
         <div>
           <h2 id="active-users-title" className="founder-panel__title">Active users</h2>
-          <p className="founder-panel__subtitle">Distinct members with a session used during each window.</p>
+          <p className="founder-panel__subtitle">
+            Distinct members with a session in each window.
+          </p>
         </div>
         <FounderIconBadge name="activity" tone="blue" />
       </div>
@@ -45,7 +47,9 @@ export function FounderActiveUsers({ analytics }: { analytics: HqAnalyticsOvervi
           </div>
         ))}
       </div>
-      <p className="founder-panel__footnote">Online now is unavailable until D8N has a canonical presence signal.</p>
+      <p className="founder-panel__footnote">
+        Online now is the hero metric (session used in the last 30 minutes).
+      </p>
     </section>
   );
 }

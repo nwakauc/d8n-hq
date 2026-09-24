@@ -213,10 +213,6 @@ export function isHqNavItemActive(
     );
   }
 
-  if (item.id === "trust-photos") {
-    return false;
-  }
-
   if (itemTab) {
     return normalized.startsWith(itemPath) && currentTab === itemTab;
   }

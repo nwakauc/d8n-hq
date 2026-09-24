@@ -67,17 +67,17 @@ export default function DatabaseBackupsPage() {
   }
 
   return (
-    <main className="founder-overview database-backups-page">
-      <header className="founder-intro database-backups-page__intro">
-        <div className="founder-intro__copy">
-          <h1 className="founder-intro__title">Database backups</h1>
-          <p className="founder-intro__meta">Off-site recovery points for the shared D8N platform databases.</p>
-        </div>
-        <div className="founder-intro__actions">
-          {canManage ? <button type="button" className="founder-refresh" onClick={() => void runBackup()} disabled={running}>{running ? "Running…" : "Run backup now"}</button> : null}
-          <button type="button" className="founder-refresh" onClick={() => void load()}>Refresh</button>
-        </div>
-      </header>
+    <div className="hq-content hq-content--stack founder-overview database-backups-page">
+      <div className="hq-page-toolbar">
+        {canManage ? (
+          <button type="button" className="hq-btn hq-btn--primary" onClick={() => void runBackup()} disabled={running}>
+            {running ? "Running…" : "Run backup now"}
+          </button>
+        ) : null}
+        <button type="button" className="hq-btn hq-btn--ghost" onClick={() => void load()}>
+          Refresh
+        </button>
+      </div>
 
       {error ? <div className="founder-banner"><strong>Backup request failed.</strong> {error}</div> : null}
 
@@ -104,6 +104,6 @@ export default function DatabaseBackupsPage() {
           <section className="founder-panel founder-reference-panel database-backups-page__restore"><h2 className="founder-panel__title">Restore safety</h2><p>HQ does not restore over a live database. Use <code>script/operations/postgres_restore_drill</code> to restore into a newly-created disposable database, verify it, and promote only through the normal operational change process.</p><Link className="founder-link-arrow" to="/hq">Back to Command Centre</Link></section>
         </>
       ) : <section className="founder-panel"><p>{error ?? "Loading backup status…"}</p></section>}
-    </main>
+    </div>
   );
 }

@@ -19,7 +19,7 @@ export default function CommandCentrePage() {
   const canSystem = operatorHasCapability(operator, "hq.system.read");
   const canManageBackups = operatorHasCapability(operator, "hq.backups.manage");
 
-  const { load, data, partialErrors } = useCommandCentreData({
+  const { load, data, partialErrors, operationalWindow: rollingWindow } = useCommandCentreData({
     canAnalytics,
     canAlerts,
     canSystem,
@@ -45,6 +45,7 @@ export default function CommandCentrePage() {
         onRefresh={onRefresh}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
+        rollingWindow={rollingWindow}
       />
     );
   }
@@ -60,6 +61,7 @@ export default function CommandCentrePage() {
         canAnalytics={canAnalytics}
         canAlerts={canAlerts}
         onRefresh={onRefresh}
+        rollingWindow={rollingWindow}
       />
     </>
   );

@@ -249,7 +249,7 @@ export type HqRecentReport = {
   id: number;
   status: "open" | "reviewing" | "actioned" | "dismissed";
   reason: string;
-  target_type: "profile" | "message" | "profile_media" | "hook" | "conversation";
+  target_type: HqReportTargetType;
   direction: "filed" | "received";
   created_at: string;
 };

@@ -18,7 +18,7 @@ const REASON_ROWS = [
  */
 export function DeletionsPanel() {
   return (
-    <section className="hq-card hq-analytics-panel founder-reference-panel" aria-labelledby="deletions-title">
+    <section className="hq-card hq-analytics-panel founder-reference-panel founder-deletions" aria-labelledby="deletions-title">
       <div className="hq-analytics-panel__header">
         <div>
           <h2 id="deletions-title">Deletions</h2>

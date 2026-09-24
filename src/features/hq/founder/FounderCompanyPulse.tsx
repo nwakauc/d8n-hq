@@ -36,7 +36,7 @@ export function FounderCompanyPulse({ health }: { health: HqCommandCentreHealth 
   const chartRows = PULSE_WINDOWS.map((window) => ({
     window: health.windows[window.key]?.label ?? window.label,
     ...Object.fromEntries(
-      PULSE_METRICS.map((metric) => [metric.dataKey, presentMetric(metric.pick(health, window.key)).numeric ?? 0]),
+      PULSE_METRICS.map((metric) => [metric.dataKey, presentMetric(metric.pick(health, window.key)).numeric]),
     ),
   }));
 

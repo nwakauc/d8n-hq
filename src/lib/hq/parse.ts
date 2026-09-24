@@ -518,7 +518,9 @@ function parseReport(value: unknown): HqRecentReport {
     target !== "message" &&
     target !== "profile_media" &&
     target !== "hook" &&
-    target !== "conversation"
+    target !== "conversation" &&
+    target !== "private_album" &&
+    target !== "private_album_item"
   ) {
     throw new ApiError(502, undefined, "invalid_hq_report_target");
   }
@@ -1191,7 +1193,9 @@ function parseReportTargetType(value: unknown): HqReportTargetType {
     value === "message" ||
     value === "profile_media" ||
     value === "hook" ||
-    value === "conversation"
+    value === "conversation" ||
+    value === "private_album" ||
+    value === "private_album_item"
   ) {
     return value;
   }
@@ -1401,9 +1405,6 @@ const HQ_CAPABILITIES = new Set<string>([
   "admin.trust_adjustments.reverse",
   "admin.discovery_restrictions.manage",
   "admin.identity_correction.manage",
-  "admin.discovery_restrictions.manage",
-  "admin.trust_adjustments.manage",
-  "admin.trust_adjustments.reverse",
   "admin.community.read",
   "admin.community.moderate",
   "admin.operators.read",

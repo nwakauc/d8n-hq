@@ -15,9 +15,12 @@ import {
   MetricCard,
   ScoreCard,
   StateBanner,
+  StatGroup,
   StatusBadge,
   UnavailableState,
 } from "../components/HqPrimitives.tsx";
+import type { OperationalWindow } from "../commandCentreWindows.ts";
+import { UNSUPPORTED_OPERATIONAL_WINDOW } from "../commandCentreWindows.ts";
 import type { CommandCentreData, CommandCentreLoadState } from "../hooks/useCommandCentreData.ts";
 import { DailyRegistrationsPanel } from "../analytics/DailyRegistrationsPanel.tsx";
 
@@ -178,6 +181,7 @@ export function CommandCentreOpsDashboard({
   canAnalytics,
   canAlerts,
   onRefresh,
+  rollingWindow,
 }: {
   load: CommandCentreLoadState;
   data: CommandCentreData;
@@ -185,6 +189,7 @@ export function CommandCentreOpsDashboard({
   canAnalytics: boolean;
   canAlerts: boolean;
   onRefresh: () => void;
+  rollingWindow: OperationalWindow | null;
 }) {
   const health = data.health;
   const alertCount = data.alerts?.alerts.length ?? 0;
@@ -206,7 +211,7 @@ export function CommandCentreOpsDashboard({
         ) : null}
 
         <MetricCard
-          title="Founder snapshot"
+          title="Brand snapshot"
           action={
             health ? <StatusBadge tone="success">Live</StatusBadge> : (
               <StatusBadge tone="neutral">Brand scope</StatusBadge>
@@ -246,24 +251,9 @@ export function CommandCentreOpsDashboard({
           )}
         </MetricCard>
 
-        <div className="hq-score-grid" aria-label="Company scores">
-          {SCORE_LABELS.map((label) => (
-            <ScoreCard
-              key={label}
-              label={label}
-              badge={label === "Revenue" ? "NOT CONFIGURED" : "INSUFFICIENT DATA"}
-              hint={
-                label === "Revenue"
-                  ? "Billing does not exist in D8N yet."
-                  : "Score inputs are not trustworthy until later HQ phases."
-              }
-            />
-          ))}
-        </div>
-
         {health ? (
           <>
-            <MetricCard title="Today / Audience">
+            <MetricCard title="Audience (health snapshot)">
               <div className="hq-command-stats">
                 <CommandCentreStat label="Total memberships" metric={health.audience.memberships_total} />
                 {PRIMARY_WINDOWS.map((windowKey) =>
@@ -399,12 +389,47 @@ export function CommandCentreOpsDashboard({
         ) : null}
 
         <div className="hq-grid-3">
-          <MetricCard title="Funnel overview">
-            <UnavailableState
-              badge="INSUFFICIENT DATA"
-              title="Funnel not wired"
-              body="Dedicated funnel dashboards ship in a later HQ phase."
-            />
+          <MetricCard title="Engagement funnel">
+            {data.funnelError ? (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Could not load funnel"
+                body={data.funnelError}
+              />
+            ) : data.funnel ? (
+              <>
+                <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
+                  {data.funnel.brand} · {data.funnel.window.replace(/_/g, " ")} · {data.funnel.time_zone}
+                </p>
+                <DataTable
+                  columns={[
+                    { key: "stage", header: "Stage" },
+                    { key: "value", header: "Members" },
+                    { key: "ofRegistrations", header: "Of registrations" },
+                  ]}
+                  rows={data.funnel.stages.map((stage) => ({
+                    stage: humanizeKey(stage.id),
+                    value:
+                      stage.status === "available" && typeof stage.value === "number"
+                        ? stage.value.toLocaleString("en-ZA")
+                        : "Unavailable",
+                    ofRegistrations:
+                      stage.conversion_from_registration === null
+                        ? "—"
+                        : `${(stage.conversion_from_registration * 100).toFixed(0)}%`,
+                  }))}
+                  empty="No funnel stages returned."
+                />
+              </>
+            ) : load === "loading" ? (
+              <p className="hq-card__subtitle">Loading product funnel…</p>
+            ) : (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Funnel not loaded"
+                body="Product intelligence funnel was not returned for this operator."
+              />
+            )}
           </MetricCard>
           <MetricCard title="Acquisition channels">
             <UnavailableState
@@ -413,13 +438,146 @@ export function CommandCentreOpsDashboard({
               body="Registration does not store utm_* or campaign source today."
             />
           </MetricCard>
-          <MetricCard title="System health">
-            <UnavailableState
-              badge="COMING LATER"
-              title="Observability vendor not adopted"
-              body="Errors, APM, and infra health belong to a later phase — not hand-rolled fake uptime."
-            />
+          <MetricCard
+            title="System health"
+            action={
+              data.systemHealth ? (
+                <StatusBadge
+                  tone={
+                    data.systemHealth.overall === "healthy"
+                      ? "success"
+                      : data.systemHealth.overall === "down"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
+                  {data.systemHealth.overall.replace(/_/g, " ")}
+                </StatusBadge>
+              ) : undefined
+            }
+          >
+            {data.systemHealthError ? (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Could not load system health"
+                body={data.systemHealthError}
+              />
+            ) : data.systemHealth ? (
+              <StatGroup
+                items={[
+                  { label: "API", value: data.systemHealth.services.api.status },
+                  { label: "Database", value: data.systemHealth.services.database.status },
+                  { label: "Jobs", value: data.systemHealth.services.jobs.status },
+                  { label: "Media", value: data.systemHealth.services.media_storage.status },
+                  { label: "Notifications", value: data.systemHealth.services.notifications.status },
+                ]}
+              />
+            ) : load === "loading" ? (
+              <p className="hq-card__subtitle">Loading system probes…</p>
+            ) : (
+              <UnavailableState
+                badge="FORBIDDEN"
+                title="System health not enabled"
+                body="Requires hq.system.read. Errors, APM, and vendor observability remain reserved."
+              />
+            )}
           </MetricCard>
+        </div>
+
+        <div className="hq-grid-2">
+          <MetricCard title="Devices & platforms">
+            {data.devicesError ? (
+              <UnavailableState badge="UNAVAILABLE" title="Could not load devices" body={data.devicesError} />
+            ) : data.devices ? (
+              <>
+                <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
+                  Rolling {data.devices.window} · {data.devices.brand} · {data.devices.time_zone}
+                </p>
+                <StatGroup
+                  items={Object.entries(data.devices.platforms).map(([platform, summary]) => ({
+                    label: platform,
+                    value: `${summary.active_users.toLocaleString("en-ZA")} users · ${summary.active_devices.toLocaleString("en-ZA")} devices`,
+                  }))}
+                />
+              </>
+            ) : !rollingWindow ? (
+              <UnavailableState
+                badge="NOT IN RANGE"
+                title="No rolling-window equivalent"
+                body={UNSUPPORTED_OPERATIONAL_WINDOW}
+              />
+            ) : load === "loading" ? (
+              <p className="hq-card__subtitle">Loading device telemetry…</p>
+            ) : (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Devices not loaded"
+                body="Device telemetry was not returned for this operator."
+              />
+            )}
+          </MetricCard>
+          <MetricCard
+            title="Notification health"
+            action={
+              <Link className="hq-inline-link" to="/hq/notifications">
+                Delivery logs
+              </Link>
+            }
+          >
+            {data.notificationHealthError ? (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Could not load notification health"
+                body={data.notificationHealthError}
+              />
+            ) : data.notificationHealth ? (
+              <>
+                <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
+                  Rolling {data.notificationHealth.window} · provider acceptance. Receipts are not captured.
+                </p>
+                <StatGroup
+                  items={(["push", "email", "sms"] as const).map((channel) => {
+                    const row = data.notificationHealth?.channels[channel];
+                    if (!row) return { label: channel, value: "—" };
+                    if (!row.configured) return { label: channel, value: "Not configured" };
+                    return {
+                      label: channel,
+                      value: `Accepted ${row.provider_accepted.toLocaleString("en-ZA")} · fail ${row.failed.toLocaleString("en-ZA")}`,
+                    };
+                  })}
+                />
+              </>
+            ) : !rollingWindow ? (
+              <UnavailableState
+                badge="NOT IN RANGE"
+                title="No rolling-window equivalent"
+                body={UNSUPPORTED_OPERATIONAL_WINDOW}
+              />
+            ) : load === "loading" ? (
+              <p className="hq-card__subtitle">Loading notification telemetry…</p>
+            ) : (
+              <UnavailableState
+                badge="UNAVAILABLE"
+                title="Notification health not loaded"
+                body="Notification health was not returned for this operator."
+              />
+            )}
+          </MetricCard>
+        </div>
+
+        <div className="hq-score-grid" aria-label="Company scores">
+          {SCORE_LABELS.map((label) => (
+            <ScoreCard
+              key={label}
+              label={label}
+              badge={label === "Revenue" ? "NOT CONFIGURED" : "INSUFFICIENT DATA"}
+              hint={
+                label === "Revenue"
+                  ? "Billing does not exist in D8N yet."
+                  : "Composite scores are not trustworthy until later HQ phases. Underlying counts are in the cards above."
+              }
+            />
+          ))}
         </div>
 
         <div className="hq-grid-4">

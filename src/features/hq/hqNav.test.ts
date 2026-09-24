@@ -30,4 +30,9 @@ describe("hq nav config", () => {
     expect(findHqNavItem("/hq/members", "")?.id).toBe("members");
     expect(findHqNavItem("/hq/members/abc-123", "")?.id).toBe("members");
   });
+
+  it("highlights photo moderation on its live route", () => {
+    expect(findHqNavItem("/hq/moderation/photos", "")?.id).toBe("trust-photos");
+    expect(findHqNavGroupIdForPath("/hq/moderation/photos", "")).toBe("trust");
+  });
 });

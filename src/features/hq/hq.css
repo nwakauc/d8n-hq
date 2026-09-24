@@ -737,7 +737,12 @@ body {
 
 .hq-registration-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .hq-registration-legend i { width: 8px; height: 8px; border-radius: 999px; }
-.hq-registration-legend__hint { margin-left: auto; font-style: italic; }
+.hq-registration-legend__hint {
+  margin: 4px 0 0;
+  color: var(--hq-muted, #667085);
+  font-size: 12px;
+  font-style: italic;
+}
 
 /* —— Cards / primitives —— */
 .hq-card {
@@ -863,6 +868,38 @@ body {
   background: var(--hq-danger-soft);
   color: var(--hq-danger);
   border-color: rgba(240, 113, 120, 0.3);
+}
+
+.hq-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hq-page-toolbar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--hq-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hq-page-toolbar__field select {
+  min-width: 140px;
+  border: 1px solid var(--hq-border);
+  border-radius: 8px;
+  background: var(--hq-bg-card);
+  color: inherit;
+  padding: 7px 10px;
+}
+
+.hq-table-empty {
+  margin: 8px 0 0;
+  color: var(--hq-text-muted);
+  font-size: 13px;
 }
 
 .hq-empty {
@@ -2136,11 +2173,15 @@ body {
   gap: 20px;
 }
 
-.hq-live-page-heading h1 {
+.hq-live-page-heading h1,
+.hq-live-page-heading .hq-live-pill {
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 0;
+}
+
+.hq-live-page-heading h1 {
   font-size: 24px;
   letter-spacing: -0.03em;
 }

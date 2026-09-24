@@ -4,6 +4,7 @@ import { presentMetric } from "../commandCentreMetric.ts";
 import { memberActiveWindowPath, memberCreatedWindowPath } from "../analytics/analyticsTypes.ts";
 import { FounderIcon, type FounderIconName } from "./founderIcons.tsx";
 import { FounderMetricInfo, FounderMetricValue } from "./FounderMetricInfo.tsx";
+import { heroDayTrend } from "./heroTrend.ts";
 
 const ONLINE_NOW_WINDOW_MS = 30 * 60 * 1000;
 
@@ -40,26 +41,32 @@ type HeroMetricSpec = {
   to: (health: HqCommandCentreHealth) => string | null;
 };
 
-function percentageChange(current: HqMetricValue, previous: HqMetricValue | undefined): number | null {
-  if (current.status !== "available" || previous?.status !== "available") return null;
-  if (typeof current.value !== "number" || typeof previous.value !== "number") return null;
-  if (previous.value === 0) return current.value === 0 ? null : 100;
-  return Math.round(((current.value - previous.value) / previous.value) * 100);
-}
+function HeroMetricTrend({
+  current,
+  previous,
+  todayWindow,
+}: {
+  current: HqMetricValue;
+  previous?: HqMetricValue;
+  todayWindow?: HqCommandCentreHealth["windows"][string];
+}) {
+  const trend = heroDayTrend(current, previous, todayWindow);
+  if (!trend) return null;
 
-function HeroMetricTrend({ current, previous }: { current: HqMetricValue; previous?: HqMetricValue }) {
-  const change = percentageChange(current, previous);
-  if (change === null) return null;
+  const tone =
+    trend.kind === "percent" && trend.change !== null
+      ? trend.change >= 0
+        ? "up"
+        : "down"
+      : "neutral";
 
-  const direction = change >= 0 ? "up" : "down";
   return (
     <span
-      className={`founder-hero__trend founder-hero__trend--${direction}`}
-      title="Compared with the previous calendar day"
-      aria-label={`${change >= 0 ? "Up" : "Down"} ${Math.abs(change)} percent versus the previous day`}
+      className={`founder-hero__trend founder-hero__trend--${tone}`}
+      title={trend.title}
+      aria-label={trend.ariaLabel}
     >
-      {change >= 0 ? "↑" : "↓"} {Math.abs(change)}%
-      <small>vs previous day</small>
+      {trend.label}
     </span>
   );
 }
@@ -71,7 +78,7 @@ const HERO_SPECS: HeroMetricSpec[] = [
     icon: "users" as FounderIconName,
     tone: "blue" as const,
     pick: (health: HqCommandCentreHealth) => health.audience.memberships_total,
-    context: () => "All memberships",
+    context: () => "Kept memberships · snapshot",
     windowKey: null as string | null,
     to: () => "/hq/members",
   },
@@ -105,7 +112,7 @@ const HERO_SPECS: HeroMetricSpec[] = [
     icon: "activity" as FounderIconName,
     tone: "green" as const,
     pick: (health: HqCommandCentreHealth) => health.activity.online_now,
-    context: () => "Active in the last 30 min",
+    context: () => "Session used in last 30 min",
     windowKey: null as string | null,
     to: (health: HqCommandCentreHealth) => onlineNowWindowPath(health),
   },
@@ -133,7 +140,7 @@ const HERO_SPECS: HeroMetricSpec[] = [
   },
   {
     key: "conversations",
-    label: "Conversations",
+    label: "Conversations today",
     icon: "message-circle" as FounderIconName,
     tone: "blue" as const,
     pick: (health: HqCommandCentreHealth) => health.marketplace.conversations_created.today,
@@ -199,9 +206,17 @@ export function FounderHeroMetrics({ health }: { health: HqCommandCentreHealth }
             </div>
             <div className="founder-hero__metric-line">
               <FounderMetricValue presentation={presentation} large />
-              <HeroMetricTrend current={metric} previous={previousMetric} />
             </div>
-            <span className="founder-hero__context">{spec.context(health)}</span>
+            <span className="founder-hero__context">
+              {spec.context(health)}
+              {previousMetric ? (
+                <HeroMetricTrend
+                  current={metric}
+                  previous={previousMetric}
+                  todayWindow={health.windows.today}
+                />
+              ) : null}
+            </span>
           </>
         );
 

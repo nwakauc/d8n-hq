@@ -155,6 +155,7 @@ function member360Ok(overrides: Record<string, unknown> = {}) {
         recent_conversations: [],
         blocks_given: 0,
         blocks_received: 0,
+        private_media: { albums: 0, active_grants: 0, photos: 0, videos: 0, reports: 0 },
       },
       comms: {
         delivery_counts_by_status: { sent: 1 },
@@ -232,6 +233,7 @@ function member360NoProfile() {
         recent_conversations: [],
         blocks_given: 0,
         blocks_received: 0,
+        private_media: { albums: 0, active_grants: 0, photos: 0, videos: 0, reports: 0 },
       },
       comms: {
         delivery_counts_by_status: {},
@@ -908,10 +910,10 @@ describe("D8N HQ Phase 1 integration", () => {
     renderAt("/hq");
 
     await screen.findAllByText(/New today/i);
-    expect(screen.getByLabelText("Up 50 percent versus the previous day")).toBeInTheDocument();
-    expect(screen.getByLabelText("Up 33 percent versus the previous day")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Down 50 percent versus the previous day").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("vs previous day").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByLabelText(/Yesterday \d+\. Today is still in progress\./).length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("2 yesterday").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("6 yesterday")).toBeInTheDocument();
+    expect(screen.queryByText("vs previous day")).not.toBeInTheDocument();
   });
 
   it("switches between founder and ops modes", async () => {

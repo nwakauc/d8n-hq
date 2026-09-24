@@ -28,18 +28,30 @@ function HqShellInner() {
         : (navItem?.label ?? "D8N HQ");
   const subtitle =
     title === "Command Centre"
-      ? "Real-time overview of everything happening across D8N."
+      ? "Health snapshot for the signed-in brand, plus cross-brand registration trends."
       : title === "Members" || title === "Member 360"
         ? "Look up a member and inspect operational state for the selected brand."
+        : title === "Live / Events"
+          ? "Operational event stream. Today uses Africa/Johannesburg. Counts are from events loaded here, not Command Centre snapshots."
+        : title === "Security alerts"
+          ? "Warning, high, and critical security events for the current brand."
         : title === "Trust & Safety" || title === "Overview"
-          ? "Moderation queue, repeat offenders, and enforcement history for this brand."
-          : title === "Reports" || title === "Photo moderation" || title === "Community moderation" || title === "Enforcements" || title === "Repeat offenders"
-            ? "Trust & Safety operations for this brand."
-          : title === "Report detail"
-            ? "Inspect evidence and apply lifecycle or account enforcement actions."
-            : navItem?.availability === "ready"
-              ? undefined
-              : "This area is reserved in the shell and not implemented yet.";
+          ? "Queue, repeat offenders, and enforcement history for this brand."
+        : title === "Reports" || title === "Photo moderation" || title === "Community moderation" || title === "RealMe moderation" || title === "Enforcements" || title === "Repeat offenders"
+          ? "Trust & Safety operations for this brand."
+        : title === "Report detail"
+          ? "Inspect evidence and apply lifecycle or account enforcement actions."
+        : title === "Discovery Health"
+          ? "Active, visible members and discovery pool health for this brand."
+        : title === "Database backups"
+          ? "Off-site recovery points for shared D8N platform databases."
+        : title === "Notification delivery"
+          ? "Provider acceptance and failure evidence. Delivery receipts are not captured."
+        : title === "Security"
+          ? "Review and revoke active HQ operator sessions."
+        : navItem?.availability === "ready"
+          ? undefined
+          : "This area is reserved in the shell and not implemented yet.";
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
