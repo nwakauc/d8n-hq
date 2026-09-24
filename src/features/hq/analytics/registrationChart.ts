@@ -19,7 +19,9 @@ export function splitRegistrationAxes(
     .map((id) => ({ id, max: seriesMax(rows, id) }))
     .sort((left, right) => right.max - left.max);
   const [first, second] = ranked;
-  const axes = Object.fromEntries(brands.map((id) => [id, "left" as const]));
+  const axes: Record<string, "left" | "right"> = Object.fromEntries(
+    brands.map((id) => [id, "left" as const]),
+  );
   if (!first || !second || second.max <= 0 || first.max < second.max * SPLIT_RATIO) {
     return axes;
   }

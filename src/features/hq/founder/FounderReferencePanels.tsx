@@ -14,6 +14,7 @@ import { formatRelativeTime } from "./formatRelativeTime.ts";
 import { FounderIcon, FounderIconBadge, type FounderIconName } from "./founderIcons.tsx";
 import { humanizeSecurityEvent } from "./securityEventLabels.ts";
 import { FounderHorizontalBars } from "./charts/FounderCharts.tsx";
+import { serviceProviderHref, thirdPartyProviderName, providerHref } from "./systemHealthProviders.ts";
 
 /** Panels below render the reference layout's full visual shell — chart frames,
  * tabs, rows — with every value left null/"needs backend" rather than invented,
@@ -313,8 +314,52 @@ const SYSTEM_SERVICES = [
   { label: "Jobs / queue", icon: "rocket" as FounderIconName },
   { label: "Media storage", icon: "image" as FounderIconName },
   { label: "Notifications", icon: "message-circle" as FounderIconName },
-  { label: "Third-party services", icon: "search" as FounderIconName },
 ];
+
+function ServiceHealthRow({
+  label,
+  icon,
+  statusLabel,
+  statusClass,
+  tone,
+  href,
+}: {
+  label: string;
+  icon: FounderIconName;
+  statusLabel: string;
+  statusClass: string;
+  tone: "good" | "warn" | "muted";
+  href: string | null;
+}) {
+  const body = (
+    <>
+      <span className="founder-service-list__label">
+        <FounderIcon name={icon} size={14} />
+        {label}
+      </span>
+      <span className={statusClass}>
+        <i className={`founder-status-dot founder-status-dot--${tone}`} />
+        {statusLabel}
+        {href ? <span className="founder-service-list__open">Open</span> : null}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        className="founder-service-list__row founder-service-list__row--link"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {body}
+      </a>
+    );
+  }
+
+  return <div className="founder-service-list__row">{body}</div>;
+}
 
 export function FounderSystemHealth({
   version,
@@ -326,40 +371,61 @@ export function FounderSystemHealth({
   error: string | null;
 }) {
   const release = version?.release ?? version?.image_version ?? version?.git_sha?.slice(0, 7) ?? "Unavailable";
-  const serviceRows = data ? [
-    ["D8N API", data.services.api],
-    ["Database", data.services.database],
-    ["Jobs / queue", data.services.jobs],
-    ["Media storage", data.services.media_storage],
-    ["Notifications", data.services.notifications],
-  ] as const : [];
+  const serviceRows = data
+    ? ([
+        ["D8N API", "api", data.services.api],
+        ["Database", "database", data.services.database],
+        ["Jobs / queue", "jobs", data.services.jobs],
+        ["Media storage", "media_storage", data.services.media_storage],
+        ["Notifications", "notifications", data.services.notifications],
+      ] as const)
+    : [];
   return (
-    <CoveragePanel title="System health" subtitle="Evidence-backed platform status." icon="rocket" tone="green">
+    <CoveragePanel title="System health" subtitle="Evidence-backed platform status. Click a provider to open its console." icon="rocket" tone="green">
       <div className="founder-system-health__release">
         <span>HQ release</span>
         <strong>{release}</strong>
       </div>
       <ul className="founder-service-list">
-        {(serviceRows.length > 0 ? serviceRows : SYSTEM_SERVICES.map((service) => [service.label, null] as const)).map(([label, service]) => (
-          <li key={label} className="founder-service-list__row">
-            <span className="founder-service-list__label">
-              <FounderIcon name={SYSTEM_SERVICES.find((entry) => entry.label === label)?.icon ?? "info"} size={14} />
-              {label}
-            </span>
-            <span className={service ? healthClass(service.status) : "founder-service-list__status"}>
-              <i className={`founder-status-dot founder-status-dot--${service?.status === "healthy" ? "good" : service ? "warn" : "muted"}`} />
-              {service ? `${healthLabel(service.status)}${service.latency_ms === null ? "" : ` · ${service.latency_ms}ms`}` : "Loading"}
-            </span>
-          </li>
-        ))}
-        {data?.services.third_party.length ? (
-          <li className="founder-service-list__row">
-            <span className="founder-service-list__label"><FounderIcon name="search" size={14} />Third-party services</span>
-            <span className={healthClass(data.services.third_party.some((service) => service.status === "down") ? "down" : "unknown")}>
-              {data.services.third_party.length} observed provider{data.services.third_party.length === 1 ? "" : "s"}
-            </span>
-          </li>
-        ) : null}
+        {(serviceRows.length > 0
+          ? serviceRows
+          : SYSTEM_SERVICES.filter((service) => service.label !== "Third-party services").map(
+              (service) => [service.label, null, null] as const,
+            )
+        ).map(([label, key, service]) => {
+          const href = key && service ? serviceProviderHref(key, service) : null;
+          return (
+            <li key={label}>
+              <ServiceHealthRow
+                label={label}
+                icon={SYSTEM_SERVICES.find((entry) => entry.label === label)?.icon ?? "info"}
+                statusLabel={
+                  service
+                    ? `${healthLabel(service.status)}${service.latency_ms === null ? "" : ` · ${service.latency_ms}ms`}`
+                    : "Loading"
+                }
+                statusClass={service ? healthClass(service.status) : "founder-service-list__status"}
+                tone={service?.status === "healthy" ? "good" : service ? "warn" : "muted"}
+                href={href}
+              />
+            </li>
+          );
+        })}
+        {data?.services.third_party.map((service, index) => {
+          const name = thirdPartyProviderName(service, index);
+          return (
+            <li key={`${name}-${index}`}>
+              <ServiceHealthRow
+                label={name}
+                icon="search"
+                statusLabel={healthLabel(service.status)}
+                statusClass={healthClass(service.status)}
+                tone={service.status === "healthy" ? "good" : service.status === "unknown" ? "muted" : "warn"}
+                href={providerHref(name)}
+              />
+            </li>
+          );
+        })}
       </ul>
       {error ? <p className="founder-panel__error">{error}</p> : null}
       {data ? <p className="founder-reference-empty founder-reference-empty--note">Checked {formatRelativeTime(data.generated_at)}. Unknown means no current probe evidence.</p> : null}
