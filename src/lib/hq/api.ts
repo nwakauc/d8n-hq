@@ -8,6 +8,7 @@ import {
   parseCommandCentreBrands,
   parseCommandCentreHealth,
   parseCommunityQueue,
+  parseDatabaseBackupQueued,
   parseDatabaseBackups,
   parseHqDevices,
   parseHqNotificationHealth,
@@ -51,6 +52,7 @@ import type {
   HqCommandCentreHealth,
   HqCommunitySubmission,
   HqCommunityType,
+  HqDatabaseBackupQueuedResponse,
   HqDatabaseBackupsResponse,
   HqDevicesResponse,
   HqAuthAttemptList,
@@ -335,9 +337,9 @@ export async function fetchHqDiscoveryHealth(): Promise<HqDiscoveryHealth> {
   return parseDiscoveryHealth(data);
 }
 
-export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupsResponse> {
+export async function triggerHqDatabaseBackup(): Promise<HqDatabaseBackupQueuedResponse> {
   const data = await apiRequest("/api/v1/hq/backups", { method: "POST" });
-  return parseDatabaseBackups(data);
+  return parseDatabaseBackupQueued(data);
 }
 
 export async function fetchCommandCentreBrands(): Promise<HqCommandCentreBrandsResponse> {

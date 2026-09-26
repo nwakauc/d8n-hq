@@ -864,6 +864,54 @@ export function parseHqDevices(data: unknown): import("./types.ts").HqDevicesRes
   };
 }
 
+function parsePushDeliveryReceipts(value: unknown): import("./types.ts").HqPushDeliveryReceipts {
+  const row = requireRecord(value, "notification_receipts");
+  return {
+    ok: requireNumber(row.ok, "notification_receipts_ok"),
+    error: requireNumber(row.error, "notification_receipts_error"),
+    awaiting: requireNumber(row.awaiting, "notification_receipts_awaiting"),
+  };
+}
+
+function parseDeliveryReceipts(value: unknown): import("./types.ts").HqNotificationChannel["delivery_receipts"] {
+  if (value === "not_captured") return "not_captured";
+  return parsePushDeliveryReceipts(value);
+}
+
+function parsePushFunnel(value: unknown): import("./types.ts").HqPushFunnel {
+  const row = requireRecord(value, "push_funnel");
+  return {
+    events_created: requireNumber(row.events_created, "push_funnel_events"),
+    push_deliveries_created: requireNumber(row.push_deliveries_created, "push_funnel_deliveries"),
+    expo_accepted: requireNumber(row.expo_accepted, "push_funnel_expo_accepted"),
+    receipts_ok: requireNumber(row.receipts_ok, "push_funnel_receipts_ok"),
+    failures: requireNumber(row.failures, "push_funnel_failures"),
+    device_not_registered: requireNumber(row.device_not_registered, "push_funnel_device_not_registered"),
+  };
+}
+
+function parsePushInstallation(value: unknown): import("./types.ts").HqPushInstallation {
+  const row = requireRecord(value, "push_installation");
+  return {
+    id: requireString(row.id, "push_installation_id"),
+    platform: requireString(row.platform, "push_installation_platform"),
+    device_name: nullableString(row.device_name),
+    enabled: requireBoolean(row.enabled, "push_installation_enabled"),
+    permission_status: nullableString(row.permission_status),
+    permission_reported_at: nullableString(row.permission_reported_at),
+    registration_state: nullableString(row.registration_state),
+    registration_error_code: nullableString(row.registration_error_code),
+    registration_reported_at: nullableString(row.registration_reported_at),
+    last_registration_at: nullableString(row.last_registration_at),
+    revoked_reason: nullableString(row.revoked_reason),
+    last_push_attempt_at: nullableString(row.last_push_attempt_at),
+    expo_ticket_id: nullableString(row.expo_ticket_id),
+    receipt_status: nullableString(row.receipt_status),
+    provider_error: nullableString(row.provider_error),
+    last_successful_delivery_at: nullableString(row.last_successful_delivery_at),
+  };
+}
+
 function parseNotificationChannel(value: unknown): import("./types.ts").HqNotificationChannel {
   const row = requireRecord(value, "notification_channel");
   const channel = row.channel;
@@ -872,9 +920,6 @@ function parseNotificationChannel(value: unknown): import("./types.ts").HqNotifi
   }
   if (!Array.isArray(row.provider) || !row.provider.every((entry) => typeof entry === "string")) {
     throw new ApiError(502, undefined, "invalid_hq_notification_providers");
-  }
-  if (row.delivery_receipts !== "not_captured") {
-    throw new ApiError(502, undefined, "invalid_hq_notification_receipts");
   }
   return {
     channel,
@@ -887,7 +932,7 @@ function parseNotificationChannel(value: unknown): import("./types.ts").HqNotifi
     provider_accepted: requireNumber(row.provider_accepted, "notification_provider_accepted"),
     failed: requireNumber(row.failed, "notification_failed"),
     skipped: requireNumber(row.skipped, "notification_skipped"),
-    delivery_receipts: "not_captured",
+    delivery_receipts: parseDeliveryReceipts(row.delivery_receipts),
     delivery_rate: nullableNumber(row.delivery_rate, "notification_delivery_rate"),
     failure_rate: nullableNumber(row.failure_rate, "notification_failure_rate"),
     failure_reasons: parseCountMap(row.failure_reasons, "notification_failure_reasons"),
@@ -901,12 +946,17 @@ export function parseHqNotificationHealth(data: unknown): import("./types.ts").H
   const channels = requireRecord(root.channels, "notification_channels");
   const names = ["push", "email", "sms"] as const;
   const parsedChannels = Object.fromEntries(names.map((name) => [name, parseNotificationChannel(channels[name])])) as import("./types.ts").HqNotificationHealthResponse["channels"];
+  if (root.installations !== undefined && !Array.isArray(root.installations)) {
+    throw new ApiError(502, undefined, "invalid_hq_push_installations");
+  }
   return {
     window: requireString(root.window, "notification_window"),
     brand: requireString(root.brand, "notification_brand"),
     generated_at: requireString(root.generated_at, "notification_generated_at"),
     time_zone: requireString(root.time_zone, "notification_time_zone"),
     channels: parsedChannels,
+    push_funnel: root.push_funnel === undefined ? undefined : parsePushFunnel(root.push_funnel),
+    installations: root.installations === undefined ? undefined : root.installations.map(parsePushInstallation),
   };
 }
 
@@ -932,6 +982,8 @@ export function parseHqNotificationDeliveries(data: unknown): import("./types.ts
         latency_ms: nullableNumber(row.latency_ms, "notification_delivery_latency"),
         failure_reason: nullableString(row.failure_reason),
         provider_message_id: nullableString(row.provider_message_id),
+        receipt_status: row.receipt_status === undefined ? null : nullableString(row.receipt_status),
+        receipt_checked_at: row.receipt_checked_at === undefined ? null : nullableString(row.receipt_checked_at),
       };
     }),
   };
@@ -986,6 +1038,21 @@ function parseDatabaseBackup(value: unknown): HqDatabaseBackup {
     uploaded_at: requireString(row.uploaded_at, "database_backup_uploaded_at"),
     size_bytes: nullableNumber(row.size_bytes, "database_backup_size_bytes"),
     checksum: nullableString(row.checksum),
+  };
+}
+
+export function parseDatabaseBackupQueued(data: unknown): import("./types.ts").HqDatabaseBackupQueuedResponse {
+  const root = requireRecord(data, "database_backup_queued");
+  if (root.status !== "queued") {
+    throw new ApiError(502, undefined, "invalid_hq_database_backup_queued_status");
+  }
+  if (!Array.isArray(root.labels) || !root.labels.every((label) => typeof label === "string")) {
+    throw new ApiError(502, undefined, "invalid_hq_database_backup_queued_labels");
+  }
+  return {
+    status: "queued",
+    labels: root.labels,
+    message: requireString(root.message, "database_backup_queued_message"),
   };
 }
 

@@ -68,8 +68,7 @@ export default function NotificationDeliveriesPage() {
         action={<StatusBadge tone="accent">Brand scope</StatusBadge>}
       >
         <p className="hq-card__subtitle" style={{ marginBottom: 12 }}>
-          Provider acceptance and failure evidence for the signed-in brand. Delivery receipts remain
-          separate until provider webhooks are captured.
+          Provider acceptance, Expo receipt status, and failure evidence for the signed-in brand.
         </p>
         {!error && !data ? <p className="hq-card__subtitle">Loading delivery telemetry…</p> : null}
         {data && data.deliveries.length === 0 ? (
@@ -87,6 +86,7 @@ export default function NotificationDeliveriesPage() {
               { key: "provider", header: "Provider" },
               { key: "type", header: "Type" },
               { key: "status", header: "Status" },
+              { key: "receipt", header: "Receipt" },
               { key: "attempts", header: "Attempts" },
               { key: "latency", header: "Latency" },
               { key: "failure", header: "Failure" },
@@ -103,6 +103,7 @@ export default function NotificationDeliveriesPage() {
                   {delivery.status}
                 </span>
               ),
+              receipt: delivery.receipt_status ?? "—",
               attempts: delivery.attempt_count,
               latency: delivery.latency_ms === null ? "—" : `${delivery.latency_ms}ms`,
               failure: delivery.failure_reason ?? "—",

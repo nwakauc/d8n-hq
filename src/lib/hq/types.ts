@@ -729,12 +729,46 @@ export type HqNotificationChannel = {
   provider_accepted: number;
   failed: number;
   skipped: number;
-  delivery_receipts: "not_captured";
+  delivery_receipts: "not_captured" | HqPushDeliveryReceipts;
   delivery_rate: number | null;
   failure_rate: number | null;
   failure_reasons: Record<string, number>;
   last_failure_at: string | null;
   message: string;
+};
+
+export type HqPushDeliveryReceipts = {
+  ok: number;
+  error: number;
+  awaiting: number;
+};
+
+export type HqPushFunnel = {
+  events_created: number;
+  push_deliveries_created: number;
+  expo_accepted: number;
+  receipts_ok: number;
+  failures: number;
+  device_not_registered: number;
+};
+
+export type HqPushInstallation = {
+  id: string;
+  platform: string;
+  device_name: string | null;
+  enabled: boolean;
+  permission_status: string | null;
+  permission_reported_at: string | null;
+  registration_state: string | null;
+  registration_error_code: string | null;
+  registration_reported_at: string | null;
+  last_registration_at: string | null;
+  revoked_reason: string | null;
+  last_push_attempt_at: string | null;
+  expo_ticket_id: string | null;
+  receipt_status: string | null;
+  provider_error: string | null;
+  last_successful_delivery_at: string | null;
 };
 
 export type HqNotificationHealthResponse = {
@@ -743,6 +777,8 @@ export type HqNotificationHealthResponse = {
   generated_at: string;
   time_zone: string;
   channels: Record<"push" | "email" | "sms", HqNotificationChannel>;
+  push_funnel?: HqPushFunnel;
+  installations?: HqPushInstallation[];
 };
 
 export type HqNotificationDelivery = {
@@ -757,6 +793,8 @@ export type HqNotificationDelivery = {
   latency_ms: number | null;
   failure_reason: string | null;
   provider_message_id: string | null;
+  receipt_status: string | null;
+  receipt_checked_at: string | null;
 };
 
 export type HqNotificationDeliveriesResponse = {
@@ -1209,6 +1247,12 @@ export type HqDatabaseBackup = {
   uploaded_at: string;
   size_bytes: number | null;
   checksum: string | null;
+};
+
+export type HqDatabaseBackupQueuedResponse = {
+  status: "queued";
+  labels: string[];
+  message: string;
 };
 
 export type HqDatabaseBackupsResponse = {

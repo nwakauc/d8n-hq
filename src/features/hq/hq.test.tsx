@@ -904,6 +904,8 @@ describe("D8N HQ Phase 1 integration", () => {
     expect(screen.getByText(/Android app devices registered for push this window/i)).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Notification health/i })).toBeInTheDocument();
     expect(screen.getAllByText(/4 attempted/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Receipts 2 ok/i)).toBeInTheDocument();
+    expect(screen.getByText(/Push funnel/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Expo push/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Recent errors/i })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Recent reports/i })).toBeInTheDocument();

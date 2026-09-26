@@ -13,6 +13,7 @@ import {
   parseProductTrends,
   parseHqDevices,
   parseHqNotificationHealth,
+  parseDatabaseBackupQueued,
   parseHqSystemHealth,
   parseHqAttention,
   parseAdminReport,
@@ -89,6 +90,80 @@ describe("operational HQ contracts", () => {
     });
     expect(result.channels.push.delivery_receipts).toBe("not_captured");
     expect(result.channels.sms.status).toBe("not_configured");
+  });
+
+  it("keeps Expo push receipt counts instead of treating them as missing", () => {
+    const channel = (name: "push" | "email" | "sms", receipts: "not_captured" | { ok: number; error: number; awaiting: number }) => ({
+      channel: name,
+      configured: true,
+      status: "healthy",
+      provider: name === "push" ? ["expo"] : ["test"],
+      attempted: 4,
+      queued: 0,
+      processing: 0,
+      provider_accepted: 3,
+      failed: 1,
+      skipped: 0,
+      delivery_receipts: receipts,
+      delivery_rate: 0.75,
+      failure_rate: 0.25,
+      failure_reasons: {},
+      last_failure_at: null,
+      message: "Provider acceptance and receipt evidence are measured.",
+    });
+    const result = parseHqNotificationHealth({
+      window: "24h",
+      brand: "date9ja",
+      generated_at: "2026-09-25T10:00:00Z",
+      time_zone: "Africa/Johannesburg",
+      channels: {
+        push: channel("push", { ok: 2, error: 0, awaiting: 1 }),
+        email: channel("email", "not_captured"),
+        sms: { ...channel("sms", "not_captured"), configured: false, status: "not_configured", attempted: 0, provider_accepted: 0, failed: 0 },
+      },
+      push_funnel: {
+        events_created: 5,
+        push_deliveries_created: 4,
+        expo_accepted: 3,
+        receipts_ok: 2,
+        failures: 1,
+        device_not_registered: 0,
+      },
+      installations: [
+        {
+          id: "dev_1",
+          platform: "android",
+          device_name: "Pixel",
+          enabled: true,
+          permission_status: "granted",
+          permission_reported_at: null,
+          registration_state: "registered",
+          registration_error_code: null,
+          registration_reported_at: null,
+          last_registration_at: "2026-09-25T09:00:00Z",
+          revoked_reason: null,
+          last_push_attempt_at: "2026-09-25T09:30:00Z",
+          expo_ticket_id: "ticket-1",
+          receipt_status: "ok",
+          provider_error: null,
+          last_successful_delivery_at: "2026-09-25T09:31:00Z",
+        },
+      ],
+    });
+    expect(result.channels.push.delivery_receipts).toEqual({ ok: 2, error: 0, awaiting: 1 });
+    expect(result.channels.email.delivery_receipts).toBe("not_captured");
+    expect(result.push_funnel?.receipts_ok).toBe(2);
+    expect(result.installations?.[0]?.platform).toBe("android");
+  });
+
+  it("accepts a queued database backup trigger", () => {
+    const result = parseDatabaseBackupQueued({
+      status: "queued",
+      labels: ["date9ja"],
+      message: "Backups are running in the background. Refresh this page to see the new recovery points.",
+    });
+    expect(result.status).toBe("queued");
+    expect(result.labels).toEqual(["date9ja"]);
   });
 
   it("accepts explicit unknown system status", () => {

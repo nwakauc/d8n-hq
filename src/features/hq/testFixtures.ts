@@ -463,13 +463,13 @@ export function commandCentreRouteOk(url: string) {
       provider_accepted: configured ? 3 : 0,
       failed: configured ? 1 : 0,
       skipped: 0,
-      delivery_receipts: "not_captured",
+      delivery_receipts: name === "push" ? { ok: 2, error: 0, awaiting: 1 } : "not_captured",
       delivery_rate: null,
       failure_rate: null,
       failure_reasons: {},
       last_failure_at: null,
       message: configured
-        ? "Provider acceptance is measured. Delivery receipts are not captured."
+        ? "Provider acceptance and receipt evidence are measured."
         : "No delivery attempts were recorded in this window.",
     });
     return json(200, {
@@ -482,6 +482,15 @@ export function commandCentreRouteOk(url: string) {
         email: channel("email"),
         sms: channel("sms", false),
       },
+      push_funnel: {
+        events_created: 5,
+        push_deliveries_created: 4,
+        expo_accepted: 3,
+        receipts_ok: 2,
+        failures: 1,
+        device_not_registered: 0,
+      },
+      installations: [],
     });
   }
   return undefined;

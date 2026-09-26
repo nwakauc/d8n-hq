@@ -46,7 +46,7 @@ function HqShellInner() {
         : title === "Database backups"
           ? "Off-site recovery points for shared D8N platform databases."
         : title === "Notification delivery"
-          ? "Provider acceptance and failure evidence. Delivery receipts are not captured."
+          ? "Provider acceptance, Expo receipt status, and failure evidence for this brand."
         : title === "Security"
           ? "Review and revoke active HQ operator sessions."
         : navItem?.availability === "ready"

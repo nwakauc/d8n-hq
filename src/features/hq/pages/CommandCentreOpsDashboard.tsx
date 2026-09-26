@@ -563,19 +563,31 @@ export function CommandCentreOpsDashboard({
             ) : data.notificationHealth ? (
               <>
                 <p className="hq-card__subtitle" style={{ marginBottom: 10 }}>
-                  Rolling {data.notificationHealth.window} · provider acceptance. Receipts are not captured.
+                  Rolling {data.notificationHealth.window} · Expo push receipts are measured. Email and SMS
+                  still report provider acceptance only.
                 </p>
                 <StatGroup
                   items={(["push", "email", "sms"] as const).map((channel) => {
                     const row = data.notificationHealth?.channels[channel];
                     if (!row) return { label: channel, value: "—" };
                     if (!row.configured) return { label: channel, value: "Not configured" };
+                    const receipts =
+                      row.delivery_receipts === "not_captured"
+                        ? null
+                        : `${row.delivery_receipts.ok.toLocaleString("en-ZA")} receipts ok`;
                     return {
                       label: channel,
-                      value: `Accepted ${row.provider_accepted.toLocaleString("en-ZA")} · fail ${row.failed.toLocaleString("en-ZA")}`,
+                      value: `Accepted ${row.provider_accepted.toLocaleString("en-ZA")} · fail ${row.failed.toLocaleString("en-ZA")}${receipts ? ` · ${receipts}` : ""}`,
                     };
                   })}
                 />
+                {data.notificationHealth.push_funnel ? (
+                  <p className="hq-card__subtitle" style={{ marginTop: 10 }}>
+                    Push funnel: {data.notificationHealth.push_funnel.events_created.toLocaleString("en-ZA")} events
+                    · {data.notificationHealth.push_funnel.expo_accepted.toLocaleString("en-ZA")} Expo accepted
+                    · {data.notificationHealth.push_funnel.receipts_ok.toLocaleString("en-ZA")} receipts ok
+                  </p>
+                ) : null}
               </>
             ) : !rollingWindow ? (
               <UnavailableState

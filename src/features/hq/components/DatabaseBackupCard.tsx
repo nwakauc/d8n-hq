@@ -36,17 +36,18 @@ export function DatabaseBackupCard({
 }) {
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  const [localData, setLocalData] = useState<HqDatabaseBackupsResponse | null>(null);
-  const current = localData ?? data;
+  const [queuedMessage, setQueuedMessage] = useState<string | null>(null);
+  const current = data;
   const status = backupStatus(current);
 
   async function runBackup() {
     if (!window.confirm("Run a primary and queue database backup now?")) return;
     setRunning(true);
     setRunError(null);
+    setQueuedMessage(null);
     try {
-      const next = await triggerHqDatabaseBackup();
-      setLocalData(next);
+      const queued = await triggerHqDatabaseBackup();
+      setQueuedMessage(queued.message);
     } catch (nextError) {
       setRunError(hqErrorMessage(nextError));
     } finally {
@@ -72,7 +73,10 @@ export function DatabaseBackupCard({
         <div><dt>Primary</dt><dd>{latestLabel(current?.latest.primary ?? null)}</dd></div>
         <div><dt>Queue</dt><dd>{latestLabel(current?.latest.queue ?? null)}</dd></div>
       </dl>
-      {current?.message ? <p className="founder-reference-empty founder-reference-empty--note">{current.message}</p> : null}
+      {queuedMessage ? <p className="founder-reference-empty founder-reference-empty--note">{queuedMessage}</p> : null}
+      {!queuedMessage && current?.message ? (
+        <p className="founder-reference-empty founder-reference-empty--note">{current.message}</p>
+      ) : null}
       <div className="founder-backup-card__actions">
         {canManage ? (
           <button type="button" className="founder-refresh" onClick={() => void runBackup()} disabled={running}>

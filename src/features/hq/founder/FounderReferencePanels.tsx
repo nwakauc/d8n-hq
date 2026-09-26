@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type {
   HqDevicesResponse,
   HqHealthStatus,
+  HqNotificationChannel,
   HqNotificationHealthResponse,
   HqSecurityAlertList,
   HqSystemHealthResponse,
@@ -196,6 +197,11 @@ function healthClass(status: HqHealthStatus): string {
   return `founder-health-status founder-health-status--${status}`;
 }
 
+function receiptSummary(receipts: HqNotificationChannel["delivery_receipts"]): string | null {
+  if (receipts === "not_captured") return null;
+  return `Receipts ${receipts.ok.toLocaleString("en-ZA")} ok · ${receipts.error.toLocaleString("en-ZA")} error · ${receipts.awaiting.toLocaleString("en-ZA")} awaiting`;
+}
+
 export function FounderDevicesAndPlatforms({
   data,
   error,
@@ -314,7 +320,7 @@ export function FounderNotificationHealth({
       title="Notification health"
       subtitle={
         data
-          ? `Push, email, and SMS provider acceptance in a rolling ${data.window} window. Delivery receipts are not captured.`
+          ? `Push, email, and SMS in a rolling ${data.window} window. Expo push receipts are measured; email and SMS still report provider acceptance only.`
           : "Delivery health by channel."
       }
       icon="message-circle"
@@ -335,6 +341,7 @@ export function FounderNotificationHealth({
               const metric = data?.channels[key];
               if (!metric) return <span className="founder-notification-list__stat founder-notification-list__stat--muted">—</span>;
               if (!metric.configured) return <span className="founder-notification-list__stat founder-notification-list__stat--muted">Not configured</span>;
+              const receipts = receiptSummary(metric.delivery_receipts);
               return (
                 <>
                   <span className="founder-notification-list__stat">
@@ -347,6 +354,7 @@ export function FounderNotificationHealth({
                   <span className="founder-notification-list__stat founder-notification-list__stat--muted">
                     Fail {metric.failed.toLocaleString("en-ZA")}
                   </span>
+                  {receipts ? <span className="founder-notification-list__stat">{receipts}</span> : null}
                 </>
               );
             })()}
@@ -360,10 +368,26 @@ export function FounderNotificationHealth({
           <strong>{(devices.platforms.android.push_capable_devices ?? 0).toLocaleString("en-ZA")}</strong>
         </p>
       ) : null}
+      {data?.push_funnel ? (
+        <p className="founder-device-installs">
+          Push funnel: {data.push_funnel.events_created.toLocaleString("en-ZA")} events ·{" "}
+          {data.push_funnel.push_deliveries_created.toLocaleString("en-ZA")} deliveries ·{" "}
+          {data.push_funnel.expo_accepted.toLocaleString("en-ZA")} Expo accepted ·{" "}
+          {data.push_funnel.receipts_ok.toLocaleString("en-ZA")} receipts ok ·{" "}
+          {data.push_funnel.failures.toLocaleString("en-ZA")} failed ·{" "}
+          {data.push_funnel.device_not_registered.toLocaleString("en-ZA")} invalid token
+        </p>
+      ) : null}
+      {data?.installations ? (
+        <p className="founder-device-installs">
+          Push installations: <strong>{data.installations.length.toLocaleString("en-ZA")}</strong> recorded ·{" "}
+          <strong>{data.installations.filter((row) => row.enabled).length.toLocaleString("en-ZA")}</strong> enabled
+        </p>
+      ) : null}
       {data ? (
         <p className="founder-reference-empty founder-reference-empty--note">
-          Push uses {data.channels.push.provider.join(", ") || "no recorded provider"}. Provider
-          acceptance is measured. Delivery receipts are not captured yet.
+          Push uses {data.channels.push.provider.join(", ") || "no recorded provider"}. Email and SMS
+          receipts remain uncaptured.
         </p>
       ) : null}
       {!data && !error && rollingWindow ? <NeedsBackendNote>Loading notification telemetry…</NeedsBackendNote> : null}

@@ -37,6 +37,7 @@ export default function DatabaseBackupsPage() {
   const canManage = operatorHasCapability(operator, "hq.backups.manage");
   const [data, setData] = useState<HqDatabaseBackupsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [queuedMessage, setQueuedMessage] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
   const load = useCallback(async () => {
@@ -58,7 +59,9 @@ export default function DatabaseBackupsPage() {
     setRunning(true);
     setError(null);
     try {
-      setData(await triggerHqDatabaseBackup());
+      const queued = await triggerHqDatabaseBackup();
+      setQueuedMessage(queued.message);
+      await load();
     } catch (nextError) {
       setError(hqErrorMessage(nextError));
     } finally {
@@ -80,6 +83,7 @@ export default function DatabaseBackupsPage() {
       </div>
 
       {error ? <div className="founder-banner"><strong>Backup request failed.</strong> {error}</div> : null}
+      {queuedMessage ? <div className="founder-banner"><strong>Backup queued.</strong> {queuedMessage}</div> : null}
 
       {data ? (
         <>
